@@ -1,0 +1,2964 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tune Timeline — Interactieve Mockups (TV 16:9 &amp; Telefoon)</title>
+<style>
+  :root {
+    /* Midnight Vinyl & Amber Brass — exact uit Hoofdstuk 4 */
+    --bg: #0D1117;
+    --surface: #161C27;
+    --elevated: #1F2736;
+    --groove: #2D3748;
+    --ivory: #F7F3E9;
+    --mist: #A8B3C5;
+    --amber: #F5A623;
+    --amber-soft: rgba(245, 166, 35, 0.16);
+    --emerald: #22C57E;
+    --emerald-soft: rgba(34, 197, 126, 0.16);
+    --coral: #EF476F;
+    --coral-soft: rgba(239, 71, 111, 0.18);
+    --cobalt: #3B82F6;
+
+    /* Decennium-kleurcodes */
+    --d-60: #C96A4B;
+    --d-70: #D99B26;
+    --d-80: #E04F6D;
+    --d-90: #1EA896;
+    --d-00: #3B82F6;
+    --d-10: #8B5CF6;
+    --d-20: #10B981;
+
+    --font-display: "SF Pro Display", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-body: "SF Pro Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #070A0F;
+    color: var(--ivory);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ==================== STUDIO CHROME (SHOWCASE WRAPPER) ==================== */
+  .studio-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13, 17, 23, 0.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .studio-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .studio-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .studio-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    background: var(--amber-soft);
+    border: 1px solid rgba(245, 166, 35, 0.35);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .studio-view-toggle {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--groove);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .view-btn {
+    background: transparent;
+    border: none;
+    color: var(--mist);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .view-btn:hover { color: var(--ivory); }
+  .view-btn.active {
+    background: var(--amber);
+    color: #0D1117;
+  }
+
+  .state-nav {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .state-btn {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    color: var(--mist);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 13px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .state-btn:hover {
+    border-color: rgba(245, 166, 35, 0.45);
+    color: var(--ivory);
+  }
+  .state-btn.active {
+    background: var(--amber-soft);
+    border-color: var(--amber);
+    color: var(--ivory);
+  }
+  .state-btn .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 19px;
+    height: 19px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--mist);
+  }
+  .state-btn.active .step-num {
+    background: var(--amber);
+    color: #0D1117;
+  }
+
+  .state-caption {
+    background: rgba(22, 28, 39, 0.72);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 9px 20px;
+    font-size: 13.5px;
+    color: var(--mist);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .state-caption strong { color: var(--ivory); }
+
+  /* ==================== STAGE (SIDE BY SIDE) ==================== */
+  .stage {
+    padding: 20px 24px 28px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: nowrap;
+  }
+  @media (max-width: 920px) {
+    .stage { flex-wrap: wrap; }
+  }
+
+  .device-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .device-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--mist);
+    padding: 0 4px;
+  }
+  .device-label span.pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--amber);
+    background: rgba(245, 166, 35, 0.12);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  /* TV Shell with exact 1920x1080 internal coordinate system */
+  .tv-bezel {
+    background: #05070B;
+    border: 2px solid #263042;
+    border-radius: 18px;
+    padding: 10px;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+  }
+
+  .tv-viewport {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--bg);
+    width: var(--tv-w, 1024px);
+    height: var(--tv-h, 576px);
+  }
+
+  .tv-canvas {
+    width: 1920px;
+    height: 1080px;
+    transform-origin: top left;
+    transform: scale(var(--tv-scale, 0.533333));
+    background:
+      radial-gradient(ellipse 900px 560px at 50% 42%, rgba(245, 166, 35, 0.075), transparent 70%),
+      radial-gradient(ellipse 680px 440px at 85% 90%, rgba(59, 130, 246, 0.06), transparent 70%),
+      var(--bg);
+    color: var(--ivory);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Phone Shell with exact 390x844 internal coordinate system */
+  .phone-bezel {
+    background: #06080D;
+    border: 3px solid #2C3649;
+    border-radius: 44px;
+    padding: 12px;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 68px;
+    height: 4px;
+    background: #263042;
+    border-radius: 999px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .phone-viewport {
+    position: relative;
+    overflow: hidden;
+    border-radius: 34px;
+    background: var(--bg);
+    width: var(--ph-w, 312px);
+    height: var(--ph-h, 675.2px);
+  }
+
+  .phone-canvas {
+    width: 390px;
+    height: 844px;
+    transform-origin: top left;
+    transform: scale(var(--ph-scale, 0.8));
+    background:
+      radial-gradient(circle 340px at 50% 0%, rgba(245, 166, 35, 0.08), transparent 65%),
+      var(--bg);
+    color: var(--ivory);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fullscreen View Modes */
+  body.mode-tv .phone-wrap { display: none; }
+  body.mode-phone .tv-wrap { display: none; }
+
+  body.chrome-hidden .studio-bar,
+  body.chrome-hidden .state-caption,
+  body.chrome-hidden .device-label { display: none; }
+  body.chrome-hidden .stage { padding: 0; gap: 0; }
+  body.chrome-hidden .tv-bezel,
+  body.chrome-hidden .phone-bezel {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    background: var(--bg);
+  }
+  body.chrome-hidden .tv-viewport,
+  body.chrome-hidden .phone-viewport { border-radius: 0; }
+  body.chrome-hidden .phone-notch { display: none; }
+
+  /* Floating exit button when viewing fullscreen manually (not capture) */
+  .exit-fs-btn {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 999;
+    background: rgba(13, 17, 23, 0.85);
+    color: var(--ivory);
+    border: 1px solid rgba(245, 166, 35, 0.6);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  body.show-exit-fs .exit-fs-btn { display: inline-flex; }
+
+  /* ==================== SHARED LOGO & ICONS ==================== */
+  .logo-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-text {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .logo-text .t1 { color: var(--ivory); }
+  .logo-text .t2 { color: var(--amber); font-weight: 600; letter-spacing: 0.1em; }
+
+  .token-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 30%, #FFD57A, #F5A623 65%, #C97A0A);
+    color: #0D1117;
+    font-size: 11px;
+    font-weight: 900;
+    box-shadow: 0 0 10px rgba(245, 166, 35, 0.45);
+    flex-shrink: 0;
+  }
+
+  /* ==================== TV 1920x1080 LAYOUT SYSTEM ==================== */
+  .tv-top-rail {
+    height: 114px;
+    padding: 14px 28px 10px;
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(13, 17, 23, 0.8);
+    flex-shrink: 0;
+  }
+
+  .tv-player-pill {
+    flex: 1;
+    min-width: 0;
+    background: var(--surface);
+    border: 2px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 10px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  .tv-player-pill.active {
+    background: #1D2535;
+    border-color: var(--amber);
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22), 0 12px 26px rgba(0, 0, 0, 0.4);
+  }
+  .tv-player-pill.matchpoint {
+    border-color: rgba(239, 71, 111, 0.72);
+    box-shadow: 0 0 18px rgba(239, 71, 111, 0.24);
+  }
+  .tv-player-pill.offline { opacity: 0.52; }
+
+  .tv-pill-row1 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+  }
+  .p-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: #0D1117;
+    flex-shrink: 0;
+  }
+  .p-name {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--ivory);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tv-top-rail.rail-10 .p-name { font-size: 18px; }
+  .tv-top-rail.rail-10 .tv-player-pill { padding: 9px 11px 11px; }
+  .tv-top-rail.rail-10 .p-avatar { width: 24px; height: 24px; font-size: 12px; border-radius: 7px; }
+
+  .tv-pill-row2 {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 2px;
+  }
+  .p-score {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ivory);
+    line-height: 1;
+  }
+  .p-score span { font-size: 16px; font-weight: 600; color: var(--mist); }
+  .tv-top-rail.rail-10 .p-score { font-size: 23px; }
+
+  .p-tokens {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--amber);
+  }
+  .p-tokens .token-dot { width: 17px; height: 17px; font-size: 10px; }
+
+  .p-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .p-progress-fill { height: 100%; border-radius: 0 3px 3px 0; }
+
+  .match-tag {
+    position: absolute;
+    top: 7px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    background: var(--coral);
+    color: var(--ivory);
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+
+  /* TV Main Stage */
+  .tv-main {
+    flex: 1;
+    padding: 28px 44px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    min-height: 0;
+  }
+
+  /* TV Bottom Bar */
+  .tv-bottom {
+    height: 86px;
+    padding: 0 36px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(13, 17, 23, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-shrink: 0;
+  }
+
+  .tv-bottom-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    font-size: 20px;
+    color: var(--mist);
+    font-weight: 600;
+  }
+  .tv-bottom-left strong { color: var(--ivory); }
+
+  .tv-reactions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .reaction-bubble {
+    background: var(--elevated);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ivory);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tv-bottom-qr {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .mini-qr-box {
+    width: 56px;
+    height: 56px;
+    background: #FFFFFF;
+    border-radius: 8px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .room-chip {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+  .room-chip .lbl { font-size: 13px; color: var(--mist); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .room-chip .code { font-family: var(--font-mono); font-size: 26px; font-weight: 800; color: var(--amber); letter-spacing: 0.14em; }
+
+  /* ==================== TV COMPONENTS: HEADER / VINYL / BANNERS ==================== */
+  .tv-turn-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+  }
+
+  .vinyl-cluster {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .vinyl-disc {
+    width: 126px;
+    height: 126px;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at center, #0D1117 0 11%, #F5A623 11% 29%, #161C27 29% 31%, #0B0E14 31% 100%);
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .vinyl-disc::before {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.03), inset 0 0 0 20px rgba(255, 255, 255, 0.04);
+  }
+  .vinyl-disc.spinning { animation: spinVinyl 6s linear infinite; }
+  @keyframes spinVinyl { to { transform: rotate(360deg); } }
+
+  .eq-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 26px;
+    margin-left: 10px;
+  }
+  .eq-bars i {
+    display: block;
+    width: 5px;
+    border-radius: 3px;
+    background: var(--amber);
+    animation: eqPulse 0.9s ease-in-out infinite alternate;
+  }
+  .eq-bars i:nth-child(1) { height: 14px; animation-delay: 0s; }
+  .eq-bars i:nth-child(2) { height: 26px; animation-delay: 0.2s; }
+  .eq-bars i:nth-child(3) { height: 18px; animation-delay: 0.45s; }
+  .eq-bars i:nth-child(4) { height: 24px; animation-delay: 0.15s; }
+  @keyframes eqPulse {
+    from { transform: scaleY(0.38); }
+    to { transform: scaleY(1); }
+  }
+
+  .turn-title-block .eyebrow {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--amber);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .turn-title-block h1 {
+    font-family: var(--font-display);
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--ivory);
+    line-height: 1.08;
+  }
+  .turn-title-block .sub {
+    font-size: 22px;
+    color: var(--mist);
+    margin-top: 8px;
+  }
+
+  .claim-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--amber-soft);
+    border: 1.5px solid var(--amber);
+    color: var(--ivory);
+    font-size: 20px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 999px;
+    margin-top: 10px;
+  }
+
+  .tv-timer-box {
+    background: var(--surface);
+    border: 2px solid var(--groove);
+    border-radius: 20px;
+    padding: 16px 28px;
+    min-width: 210px;
+    text-align: center;
+  }
+  .tv-timer-box.urgent {
+    border-color: var(--coral);
+    background: rgba(239, 71, 111, 0.14);
+    box-shadow: 0 0 28px rgba(239, 71, 111, 0.25);
+  }
+  .tv-timer-box .t-lbl {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mist);
+  }
+  .tv-timer-box .t-val {
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--ivory);
+  }
+  .tv-timer-box.urgent .t-val { color: var(--coral); }
+
+  /* Steal Banner */
+  .steal-banner {
+    background: linear-gradient(90deg, rgba(239, 71, 111, 0.24), rgba(245, 166, 35, 0.18));
+    border: 2px solid var(--coral);
+    border-radius: 20px;
+    padding: 18px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .steal-banner h2 {
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--ivory);
+  }
+  .steal-banner p { font-size: 21px; color: var(--ivory); opacity: 0.9; margin-top: 4px; }
+  .steal-progress-track {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 7px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .steal-progress-bar {
+    height: 100%;
+    width: 72%;
+    background: linear-gradient(90deg, var(--coral), var(--amber));
+  }
+
+  /* ==================== TV HORIZONTAL TIMELINE ==================== */
+  .tv-timeline-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    padding: 18px 0;
+  }
+
+  .timeline-axis-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mist);
+    margin-bottom: 18px;
+    padding: 0 8px;
+  }
+
+  .tv-timeline-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 20px 8px;
+  }
+  .tv-timeline-track::before {
+    content: "";
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    top: 50%;
+    height: 4px;
+    background: linear-gradient(90deg, rgba(245, 166, 35, 0.15), rgba(245, 166, 35, 0.45), rgba(245, 166, 35, 0.15));
+    border-radius: 999px;
+    z-index: 0;
+  }
+
+  /* Open Music Card on TV */
+  .tv-card {
+    position: relative;
+    z-index: 2;
+    width: 216px;
+    height: 276px;
+    background: var(--surface);
+    border: 2px solid rgba(255, 255, 255, 0.11);
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.48);
+    flex-shrink: 0;
+  }
+  .tv-timeline-track.dense {
+    gap: 10px;
+  }
+  .tv-timeline-track.dense .tv-card {
+    width: 150px;
+    height: 214px;
+    border-radius: 15px;
+  }
+  .tv-timeline-track.win10 .tv-card {
+    width: 158px;
+    height: 206px;
+    border-radius: 14px;
+  }
+
+  .tv-card-strip { height: 11px; width: 100%; }
+  .tv-card-body {
+    flex: 1;
+    padding: 16px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+  }
+  .tv-card-decade {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+  .tv-card-year {
+    font-family: var(--font-display);
+    font-size: 54px;
+    font-weight: 800;
+    color: var(--ivory);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .tv-timeline-track.dense .tv-card-year { font-size: 44px; }
+  .tv-timeline-track.win10 .tv-card-year { font-size: 42px; }
+
+  .tv-card-meta {
+    background: rgba(13, 17, 23, 0.65);
+    border-radius: 11px;
+    padding: 10px 10px;
+    text-align: left;
+  }
+  .tv-card-artist {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ivory);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tv-card-title {
+    font-size: 15px;
+    color: var(--mist);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+  .tv-timeline-track.dense .tv-card-artist,
+  .tv-timeline-track.win10 .tv-card-artist { font-size: 15px; }
+  .tv-timeline-track.dense .tv-card-title,
+  .tv-timeline-track.win10 .tv-card-title { font-size: 13.5px; }
+
+  /* Mystery Card on TV */
+  .tv-card.mystery {
+    background:
+      repeating-radial-gradient(circle at 50% 42%, rgba(245, 166, 35, 0.06) 0 2px, transparent 2px 14px),
+      #1B2334;
+    border: 3px solid var(--amber);
+    box-shadow: 0 0 0 6px rgba(245, 166, 35, 0.18), 0 18px 40px rgba(0, 0, 0, 0.6);
+    transform: translateY(-10px);
+  }
+  .tv-card.mystery.locked {
+    border-color: var(--ivory);
+    box-shadow: 0 0 0 5px rgba(247, 243, 233, 0.16), 0 18px 40px rgba(0, 0, 0, 0.6);
+  }
+  .mystery-q {
+    font-family: var(--font-display);
+    font-size: 86px;
+    font-weight: 900;
+    color: var(--amber);
+    line-height: 1;
+    text-shadow: 0 0 28px rgba(245, 166, 35, 0.45);
+  }
+  .tv-timeline-track.dense .mystery-q { font-size: 68px; }
+  .mystery-tag {
+    background: var(--amber);
+    color: #0D1117;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 7px 10px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .tv-card.mystery.locked .mystery-tag {
+    background: var(--ivory);
+  }
+
+  /* Open Slot & Steal Chip on TV */
+  .tv-slot {
+    position: relative;
+    z-index: 2;
+    width: 68px;
+    height: 186px;
+    border: 2px dashed rgba(245, 166, 35, 0.34);
+    border-radius: 14px;
+    background: rgba(245, 166, 35, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--amber);
+    font-size: 28px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .tv-timeline-track.dense .tv-slot { width: 42px; height: 146px; font-size: 20px; }
+  .tv-slot .slot-num { font-size: 13px; font-weight: 700; color: var(--mist); white-space: nowrap; }
+  .tv-timeline-track.dense .tv-slot .slot-num { font-size: 11px; }
+
+  .tv-slot.stolen {
+    width: 118px;
+    border: 3px solid var(--coral);
+    border-style: solid;
+    background: rgba(239, 71, 111, 0.18);
+    box-shadow: 0 0 28px rgba(239, 71, 111, 0.35);
+    padding: 10px 8px;
+  }
+  .tv-timeline-track.dense .tv-slot.stolen { width: 90px; }
+
+  .steal-chip-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+  }
+  .steal-chip-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: var(--coral);
+    color: #FFFFFF;
+    font-size: 22px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(239, 71, 111, 0.5);
+  }
+  .steal-chip-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--ivory);
+  }
+  .steal-chip-lbl {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #FFD1DC;
+    text-transform: uppercase;
+  }
+
+  /* ==================== TV LOBBY ==================== */
+  .tv-lobby-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 740px 1fr;
+    gap: 44px;
+    padding: 44px 56px;
+    align-items: stretch;
+  }
+  .lobby-left {
+    background: var(--surface);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+  }
+  .qr-big-frame {
+    background: #FFFFFF;
+    padding: 22px;
+    border-radius: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    width: 340px;
+    height: 340px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .lobby-code-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .lobby-code-box .url { font-size: 22px; color: var(--mist); font-weight: 600; }
+  .lobby-code-box .big-code {
+    font-family: var(--font-mono);
+    font-size: 76px;
+    font-weight: 900;
+    color: var(--amber);
+    letter-spacing: 0.24em;
+    padding-left: 0.24em;
+    line-height: 1;
+  }
+
+  .lobby-right {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+  }
+  .lobby-panel {
+    background: var(--surface);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 28px;
+    padding: 32px 36px;
+  }
+  .lobby-panel h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .lobby-players-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .lobby-p-slot {
+    background: var(--elevated);
+    border: 1.5px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .lobby-p-slot.empty {
+    background: rgba(255, 255, 255, 0.02);
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(168, 179, 197, 0.45);
+    font-weight: 500;
+    font-size: 20px;
+  }
+  .online-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--emerald);
+    box-shadow: 0 0 10px var(--emerald);
+  }
+  .settings-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .setting-chip {
+    background: var(--elevated);
+    border: 1.5px solid var(--groove);
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--ivory);
+  }
+  .setting-chip span { color: var(--amber); font-weight: 800; margin-left: 6px; }
+  .tv-cta-row {
+    display: flex;
+    gap: 16px;
+  }
+  .tv-btn-primary {
+    flex: 1;
+    background: linear-gradient(135deg, #F5A623, #E08A0B);
+    color: #0D1117;
+    border: none;
+    border-radius: 18px;
+    padding: 22px 32px;
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 12px 32px rgba(245, 166, 35, 0.35);
+  }
+  .tv-btn-secondary {
+    background: var(--elevated);
+    color: var(--ivory);
+    border: 2px solid var(--groove);
+    border-radius: 18px;
+    padding: 22px 28px;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  /* ==================== TV 3D FLIP REVEAL ==================== */
+  .reveal-layout {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 440px 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 12px 30px;
+  }
+
+  .flip-scene {
+    width: 390px;
+    height: 510px;
+    perspective: 1400px;
+    margin: 0 auto;
+  }
+  .flip-card {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .flip-card.flipped { transform: rotateY(180deg); }
+
+  .flip-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    border-radius: 28px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.65);
+  }
+  .flip-front {
+    background:
+      repeating-radial-gradient(circle at 50% 45%, rgba(245, 166, 35, 0.08) 0 2px, transparent 2px 18px),
+      #1B2334;
+    border: 4px solid var(--amber);
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .flip-back {
+    transform: rotateY(180deg);
+    background: var(--surface);
+    border: 4px solid var(--d-00);
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.18), 0 28px 70px rgba(0, 0, 0, 0.65);
+  }
+  .reveal-art {
+    height: 210px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .reveal-info {
+    flex: 1;
+    padding: 22px 26px 26px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: center;
+  }
+  .reveal-year {
+    font-family: var(--font-display);
+    font-size: 92px;
+    font-weight: 900;
+    line-height: 0.95;
+    color: var(--ivory);
+  }
+  .reveal-artist {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--ivory);
+  }
+  .reveal-song {
+    font-size: 25px;
+    color: var(--mist);
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .reveal-right {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .result-hero-banner {
+    border-radius: 24px;
+    padding: 28px 34px;
+    border: 2.5px solid var(--emerald);
+    background: linear-gradient(135deg, rgba(34, 197, 126, 0.2), rgba(22, 28, 39, 0.92));
+  }
+  .result-hero-banner.coral {
+    border-color: var(--coral);
+    background: linear-gradient(135deg, rgba(239, 71, 111, 0.22), rgba(22, 28, 39, 0.92));
+  }
+  .result-hero-banner.steal-win {
+    border-color: var(--emerald);
+    background: linear-gradient(135deg, rgba(239, 71, 111, 0.22), rgba(34, 197, 126, 0.22));
+  }
+  .result-hero-banner .tag {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--emerald);
+    margin-bottom: 8px;
+  }
+  .result-hero-banner.coral .tag { color: var(--coral); }
+  .result-hero-banner h2 {
+    font-family: var(--font-display);
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .result-hero-banner p {
+    font-size: 23px;
+    color: var(--mist);
+    margin-top: 10px;
+  }
+
+  .referee-box {
+    background: var(--elevated);
+    border: 2px solid var(--amber);
+    border-radius: 22px;
+    padding: 24px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .referee-box h3 { font-size: 26px; font-weight: 800; color: var(--ivory); }
+  .referee-box p { font-size: 20px; color: var(--mist); margin-top: 4px; }
+
+  .token-delta-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .delta-chip {
+    background: var(--surface);
+    border: 1.5px solid var(--groove);
+    border-radius: 16px;
+    padding: 16px 22px;
+    font-size: 22px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .delta-chip.pos { border-color: var(--emerald); color: var(--emerald); }
+  .delta-chip.neg { border-color: var(--coral); color: var(--coral); }
+
+  .replay-flip-btn {
+    align-self: flex-start;
+    background: var(--elevated);
+    border: 1.5px solid var(--amber);
+    color: var(--amber);
+    font-size: 19px;
+    font-weight: 700;
+    padding: 12px 22px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  /* ==================== TV 10-PLAYER STANDINGS GRID (2x5) ==================== */
+  .standings-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 14px 24px;
+    margin-top: 14px;
+  }
+  .standing-row {
+    background: var(--surface);
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .standing-row.top1 {
+    border-color: var(--amber);
+    background: linear-gradient(90deg, rgba(245, 166, 35, 0.14), var(--surface) 45%);
+  }
+  .rank-num {
+    font-family: var(--font-display);
+    font-size: 27px;
+    font-weight: 900;
+    color: var(--mist);
+    width: 58px;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .standing-row.top1 .rank-num { color: var(--amber); }
+
+  .st-info { width: 170px; flex-shrink: 0; }
+  .st-info .name { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .st-info .sub { font-size: 16px; color: var(--mist); margin-top: 2px; font-weight: 600; }
+
+  .mini-timeline {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+  }
+  .mini-card {
+    height: 54px;
+    min-width: 52px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: var(--elevated);
+    border-top: 5px solid var(--amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ivory);
+  }
+
+  /* ==================== TV WINNER SCREEN ==================== */
+  .confetti-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .confetti-piece {
+    position: absolute;
+    width: 14px;
+    height: 26px;
+    border-radius: 4px;
+    opacity: 0.45;
+  }
+  .winner-hero {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+  .winner-hero .eyebrow {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .winner-hero h1 {
+    font-family: var(--font-display);
+    font-size: 64px;
+    font-weight: 900;
+    margin-top: 6px;
+    line-height: 1.05;
+  }
+  .awards-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    position: relative;
+    z-index: 2;
+  }
+  .award-card {
+    background: var(--surface);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .award-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--amber-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .award-card .a-lbl { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--amber); font-weight: 800; }
+  .award-card .a-name { font-size: 24px; font-weight: 800; color: var(--ivory); margin-top: 2px; }
+  .award-card .a-sub { font-size: 16px; color: var(--mist); }
+
+  /* ==================== PHONE 390x844 LAYOUT SYSTEM ==================== */
+  .ph-status-bar {
+    height: 58px;
+    padding: 12px 16px 8px;
+    background: rgba(13, 17, 23, 0.94);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .ph-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .ph-user .p-avatar { width: 28px; height: 28px; font-size: 13px; border-radius: 8px; }
+  .ph-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ph-pill {
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 5px 11px;
+    font-size: 14px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .ph-pill.tok { color: var(--amber); border-color: rgba(245, 166, 35, 0.35); }
+
+  .phone-canvas.ring-amber { box-shadow: inset 0 0 0 4px var(--amber); }
+  .phone-canvas.ring-coral { box-shadow: inset 0 0 0 4px var(--coral); }
+  .phone-canvas.ring-emerald { box-shadow: inset 0 0 0 4px var(--emerald); }
+
+  .ph-body {
+    flex: 1;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .ph-footer {
+    padding: 12px 16px 22px;
+    background: rgba(13, 17, 23, 0.96);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .ph-btn {
+    width: 100%;
+    min-height: 56px;
+    border-radius: 14px;
+    border: none;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .ph-btn.amber { background: linear-gradient(135deg, #F5A623, #DE880B); color: #0D1117; }
+  .ph-btn.coral { background: linear-gradient(135deg, #EF476F, #D42C55); color: #FFFFFF; box-shadow: 0 8px 24px rgba(239, 71, 111, 0.4); }
+  .ph-btn.emerald { background: linear-gradient(135deg, #22C57E, #169B60); color: #0D1117; }
+  .ph-btn.ghost { background: var(--surface); color: var(--ivory); border: 1.5px solid var(--groove); min-height: 48px; font-size: 15px; }
+  .ph-btn.disabled { background: var(--surface); color: rgba(168, 179, 197, 0.5); border: 1px solid rgba(255, 255, 255, 0.07); cursor: default; }
+
+  .ph-banner {
+    background: var(--surface);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .ph-banner.amber { border-color: var(--amber); background: rgba(245, 166, 35, 0.12); }
+  .ph-banner.coral { border-color: var(--coral); background: rgba(239, 71, 111, 0.16); }
+
+  .ph-tools-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .ph-chip-btn {
+    min-height: 48px;
+    background: var(--surface);
+    border: 1.5px solid var(--groove);
+    border-radius: 12px;
+    padding: 8px 12px;
+    color: var(--ivory);
+    font-size: 13.5px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .ph-chip-btn.on {
+    background: var(--amber-soft);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  /* Phone Vertical Timeline */
+  .ph-vtimeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ph-slot-btn {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    border: 2px dashed rgba(245, 166, 35, 0.38);
+    background: rgba(245, 166, 35, 0.05);
+    color: var(--amber);
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ph-slot-btn:hover { background: rgba(245, 166, 35, 0.14); }
+  .ph-slot-btn.selected {
+    min-height: 62px;
+    border-style: solid;
+    border-color: var(--amber);
+    background: linear-gradient(135deg, rgba(245, 166, 35, 0.24), rgba(27, 35, 52, 0.96));
+    color: var(--ivory);
+    font-size: 16px;
+    box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2);
+  }
+  .ph-slot-btn.steal-selected {
+    min-height: 62px;
+    border-style: solid;
+    border-color: var(--coral);
+    background: linear-gradient(135deg, rgba(239, 71, 111, 0.28), rgba(27, 35, 52, 0.96));
+    color: var(--ivory);
+    font-size: 16px;
+  }
+  .ph-slot-btn.locked-other {
+    min-height: 50px;
+    border-style: solid;
+    border-color: rgba(247, 243, 233, 0.35);
+    background: rgba(247, 243, 233, 0.08);
+    color: var(--ivory);
+    cursor: default;
+  }
+
+  .ph-tcard {
+    background: var(--surface);
+    border: 1.5px solid rgba(255, 255, 255, 0.09);
+    border-left: 6px solid var(--amber);
+    border-radius: 13px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .ph-tcard .yr {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ivory);
+    min-width: 62px;
+  }
+  .ph-tcard .meta { min-width: 0; flex: 1; }
+  .ph-tcard .art { font-size: 15px; font-weight: 700; color: var(--ivory); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ph-tcard .ttl { font-size: 13.5px; color: var(--mist); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Phone Join Color Picker */
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  .color-swatch {
+    height: 54px;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #0D1117;
+    border: 3px solid transparent;
+    position: relative;
+  }
+  .color-swatch.picked { border-color: var(--ivory); box-shadow: 0 0 0 3px rgba(247, 243, 233, 0.35); }
+  .color-swatch.taken { opacity: 0.28; }
+  .color-swatch .taken-lbl {
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(13, 17, 23, 0.85);
+    color: var(--ivory);
+    padding: 1px 4px;
+    border-radius: 4px;
+    margin-top: 2px;
+  }
+
+  .ph-input {
+    width: 100%;
+    height: 54px;
+    background: var(--surface);
+    border: 2px solid var(--amber);
+    border-radius: 14px;
+    padding: 0 16px;
+    color: var(--ivory);
+    font-size: 19px;
+    font-weight: 700;
+    outline: none;
+  }
+
+  /* Phone Reactions & Silent Guess */
+  .react-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .react-btn {
+    min-height: 52px;
+    background: var(--surface);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--ivory);
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+  }
+  .react-btn .emo { font-size: 20px; line-height: 1; }
+
+  .guess-card {
+    background: var(--surface);
+    border: 1.5px solid rgba(59, 130, 246, 0.35);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .guess-slider {
+    width: 100%;
+    accent-color: var(--amber);
+    margin-top: 8px;
+    height: 28px;
+  }
+
+  /* Phone Host Menu Overlay */
+  .host-sheet {
+    background: var(--elevated);
+    border: 2px solid var(--amber);
+    border-radius: 20px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .host-action-btn {
+    min-height: 52px;
+    background: var(--surface);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0 14px;
+    color: var(--ivory);
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .host-action-btn.warn { border-color: rgba(239, 71, 111, 0.45); color: #FFB3C4; }
+
+  /* Responsive fallback when opening on actual mobile viewport <= 480px (only when studio chrome is shown) */
+  @media (max-width: 480px) {
+    body:not(.chrome-hidden) .studio-top { gap: 8px; }
+    body:not(.chrome-hidden) .tv-wrap { display: none; }
+    body:not(.chrome-hidden) .stage { padding: 8px 0 16px; }
+    body:not(.chrome-hidden) .phone-bezel { border: none; border-radius: 0; padding: 0; box-shadow: none; }
+    body:not(.chrome-hidden) .phone-notch { display: none; }
+    body:not(.chrome-hidden) .phone-viewport { width: 100vw !important; height: calc(100vh - 130px) !important; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- STUDIO SHOWCASE CONTROLS -->
+  <header class="studio-bar" id="studioBar">
+    <div class="studio-top">
+      <div class="studio-brand">
+        <span class="logo-lockup">
+          <svg width="34" height="28" viewBox="0 0 64 52" fill="none" aria-hidden="true">
+            <path d="M10 34 A22 22 0 0 1 54 34" stroke="#F7F3E9" stroke-width="4" stroke-linecap="round"/>
+            <path d="M18 34 A14 14 0 0 1 46 34" stroke="#A8B3C5" stroke-width="2.5" stroke-opacity="0.65"/>
+            <path d="M25 34 A7 7 0 0 1 39 34" fill="#F5A623"/>
+            <line x1="4" y1="40" x2="60" y2="40" stroke="#F5A623" stroke-width="3.5" stroke-linecap="round"/>
+            <circle cx="14" cy="40" r="4" fill="#F7F3E9"/>
+            <circle cx="32" cy="40" r="6" fill="#F5A623"/>
+            <circle cx="50" cy="40" r="4" fill="#F7F3E9"/>
+          </svg>
+          <span class="logo-text" style="font-size:19px"><span class="t1">TUNE</span><span class="t2">TIMELINE</span></span>
+        </span>
+        <span class="studio-badge">Interactieve Mockups</span>
+      </div>
+
+      <div class="studio-view-toggle" role="group" aria-label="Weergave">
+        <button class="view-btn active" data-view="both">Naast elkaar</button>
+        <button class="view-btn" data-view="tv">Alleen TV (16:9)</button>
+        <button class="view-btn" data-view="phone">Alleen Telefoon</button>
+      </div>
+    </div>
+
+    <nav class="state-nav" id="stateNav" aria-label="Speltoestanden"></nav>
+  </header>
+
+  <div class="state-caption" id="stateCaption"></div>
+
+  <!-- MAIN MOCKUP STAGE -->
+  <main class="stage" id="stage">
+    <section class="device-wrap tv-wrap">
+      <div class="device-label">
+        <span>TV-scherm (Host-pc)</span>
+        <span class="pill" id="tvMetaPill">1920 × 1080 · 16:9</span>
+      </div>
+      <div class="tv-bezel">
+        <div class="tv-viewport" id="tvViewport">
+          <div class="tv-canvas" id="tvCanvas"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="device-wrap phone-wrap">
+      <div class="device-label">
+        <span id="phonePerspectiveLbl">Telefoonscherm (Bram)</span>
+        <span class="pill">390 × 844 · 1 hand</span>
+      </div>
+      <div class="phone-bezel">
+        <div class="phone-notch"></div>
+        <div class="phone-viewport" id="phoneViewport">
+          <div class="phone-canvas" id="phoneCanvas"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <button class="exit-fs-btn" id="exitFsBtn">← Terug naar overzicht</button>
+
+<script>
+(() => {
+  // ==================== DATA MODEL (EXACT CONFORM HOOFDSTUK 4) ====================
+  const DECADES = {
+    60: { color: "#C96A4B", label: "60s" },
+    70: { color: "#D99B26", label: "70s" },
+    80: { color: "#E04F6D", label: "80s" },
+    90: { color: "#1EA896", label: "90s" },
+    0:  { color: "#3B82F6", label: "00s" },
+    10: { color: "#8B5CF6", label: "10s" },
+    20: { color: "#10B981", label: "20s" }
+  };
+
+  function decadeInfo(year) {
+    if (year < 1970) return DECADES[60];
+    if (year < 1980) return DECADES[70];
+    if (year < 1990) return DECADES[80];
+    if (year < 2000) return DECADES[90];
+    if (year < 2010) return DECADES[0];
+    if (year < 2020) return DECADES[10];
+    return DECADES[20];
+  }
+
+  const PLAYERS_10 = [
+    { id: "lisa",  name: "Lisa",  color: "#EF476F", icon: "▲", cards: 9, tokens: 2, online: true,  years: [1969,1977,1982,1987,1991,1996,2003,2008,2014] },
+    { id: "ties",  name: "Ties",  color: "#22C57E", icon: "◆", cards: 8, tokens: 3, online: true,  years: [1972,1979,1985,1994,2001,2009,2015,2021] },
+    { id: "bram",  name: "Bram",  color: "#F5A623", icon: "●", cards: 7, tokens: 2, online: true,  years: [1971,1978,1984,1992,1999,2007,2016] },
+    { id: "noor",  name: "Noor",  color: "#3B82F6", icon: "■", cards: 7, tokens: 4, online: true,  years: [1968,1981,1989,1997,2004,2012,2022] },
+    { id: "sem",   name: "Sem",   color: "#A855F7", icon: "★", cards: 6, tokens: 1, online: true,  years: [1975,1986,1995,2002,2011,2019] },
+    { id: "eva",   name: "Eva",   color: "#14B8A6", icon: "⬟", cards: 6, tokens: 3, online: true,  years: [1974,1983,1993,2006,2014,2023] },
+    { id: "daan",  name: "Daan",  color: "#F97316", icon: "✦", cards: 5, tokens: 2, online: true,  years: [1980,1991,2000,2013,2020] },
+    { id: "lot",   name: "Lotte", color: "#EC4899", icon: "♥", cards: 5, tokens: 0, online: true,  years: [1976,1988,1998,2010,2018] },
+    { id: "jesse", name: "Jesse", color: "#84CC16", icon: "✚", cards: 4, tokens: 5, online: false, years: [1984,1996,2005,2017] },
+    { id: "milan", name: "Milan", color: "#38BDF8", icon: "◐", cards: 4, tokens: 2, online: true,  years: [1973,1990,2008,2022] }
+  ];
+
+  const PLAYERS_4 = [
+    { id: "bram", name: "Bram", color: "#F5A623", icon: "●", cards: 4, tokens: 2, online: true },
+    { id: "lisa", name: "Lisa", color: "#EF476F", icon: "▲", cards: 5, tokens: 3, online: true },
+    { id: "ties", name: "Ties", color: "#22C57E", icon: "◆", cards: 4, tokens: 1, online: true },
+    { id: "noor", name: "Noor", color: "#3B82F6", icon: "■", cards: 3, tokens: 4, online: true }
+  ];
+
+  const BRAM_CARDS_4 = [
+    { year: 1975, artist: "Queen", title: "Bohemian Rhapsody" },
+    { year: 1984, artist: "Prince", title: "Purple Rain" },
+    { year: 1996, artist: "Spice Girls", title: "Wannabe" },
+    { year: 2014, artist: "Mark Ronson", title: "Uptown Funk" }
+  ];
+
+  const BRAM_CARDS_7 = [
+    { year: 1971, artist: "John Lennon", title: "Imagine" },
+    { year: 1978, artist: "Earth, Wind & Fire", title: "September" },
+    { year: 1984, artist: "Prince", title: "Purple Rain" },
+    { year: 1992, artist: "Whitney Houston", title: "I Will Always Love You" },
+    { year: 1999, artist: "Santana", title: "Smooth" },
+    { year: 2007, artist: "Rihanna", title: "Umbrella" },
+    { year: 2016, artist: "Drake", title: "One Dance" }
+  ];
+
+  const LISA_WIN_10 = [
+    { year: 1969, artist: "The Beatles", title: "Here Comes the Sun" },
+    { year: 1977, artist: "Fleetwood Mac", title: "Dreams" },
+    { year: 1982, artist: "Michael Jackson", title: "Billie Jean" },
+    { year: 1987, artist: "Whitney Houston", title: "I Wanna Dance..." },
+    { year: 1991, artist: "Nirvana", title: "Smells Like Teen Spirit" },
+    { year: 1996, artist: "Spice Girls", title: "Wannabe" },
+    { year: 2003, artist: "OutKast", title: "Hey Ya!" },
+    { year: 2008, artist: "Lady Gaga", title: "Poker Face" },
+    { year: 2014, artist: "Mark Ronson", title: "Uptown Funk" },
+    { year: 2022, artist: "Harry Styles", title: "As It Was" }
+  ];
+
+  const STATES = [
+    { id: "lobby",         num: "1", label: "Lobby",            phoneWho: "Noor (Aanmelden)", caption: "<strong>1. Lobby (4 spelers):</strong> TV toont grote QR-code + roomcode <strong>KICK</strong> en instellingen. Op de telefoon kiest Noor haar naam en spelerkleur (met vormsymbool)." },
+    { id: "beurtstart",    num: "2", label: "Beurtstart",       phoneWho: "Bram (Actieve speler)", caption: "<strong>2. Beurtstart:</strong> Bram is aan de beurt. Zijn telefoon licht goud op: hij kan direct het nummer starten of vóór de muziek 3 tokens inruilen voor een gratis kaart." },
+    { id: "speelt",        num: "3", label: "Nummer speelt",    phoneWho: "Bram (Actieve speler)", caption: "<strong>3. Nummer speelt:</strong> Muziek draait op de tv-speakers (zonder titel/jaar). Bram scrolt met één duim door zijn verticale tijdlijn, kan skippen (1 token) en vinkt <em>Titel &amp; artiest</em> aan." },
+    { id: "plaatsen",      num: "4", label: "Plaatsen (live)",  phoneWho: "Bram (Actieve speler)", caption: "<strong>4. Plaatsen (live):</strong> Bram tikt plek 3 aan (tussen 1984 en 1996). De raadselkaart schuift live mee op de tv. Tip: klik in deze mockup zelf op de gleuven op de telefoon!" },
+    { id: "steal",         num: "5", label: "Steal-venster!",   phoneWho: "Lisa (Uitdager)", caption: "<strong>5. Steal-venster (8s):</strong> Bram zette vast op plek 3 (🔒). Medespelers met tokens zien een koraalrode steal-kans. Lisa claimt plek 4 (tussen 1996 en 2014) voor 1 token!" },
+    { id: "onthulling",    num: "6", label: "Onthulling (Flip)", phoneWho: "Lisa (Scheidsrechter)", caption: "<strong>6. Onthulling (3D-flip):</strong> De kaart draait om naar <strong>2003 — OutKast · Hey Ya!</strong> (Zeroes-kobalt). Omdat Lisa de volgende speler is, keurt zij met 1 tik Bram's titel &amp; artiest." },
+    { id: "resultaat",     num: "7", label: "Steal-resultaat",  phoneWho: "Lisa (Steal-winnaar)", caption: "<strong>7. Resultaat &amp; tokens:</strong> Bram zat fout (1984–1996), Lisa's steal op 1996–2014 was raak! Kaart naar Lisa (6/10), Lisa -1 token, Bram verdient wél +1 token voor titel &amp; artiest." },
+    { id: "tv10",          num: "8", label: "TV 10 spelers",    phoneWho: "Noor (Wachtend)", caption: "<strong>8. TV-scherm met 10 spelers:</strong> Bovenin alle 10 spelers in één scherpe rail (Lisa op Matchpoint 9/10!), middenin 7 grote leesbare kaarten van Bram. Noor stuurt reacties &amp; gokt stil mee." },
+    { id: "tussenstand10", num: "9", label: "10-Spelers Stand", phoneWho: "Bram (Host-menu)", caption: "<strong>9. Tussenstand (2×5 grid) &amp; Host-menu:</strong> Na elke ronde toont de tv alle 10 tijdlijnen overzichtelijk naast elkaar. De host bedient pauze/skip vanaf de bank via zijn telefoon." },
+    { id: "winnaar",       num: "10", label: "Winnaar!",        phoneWho: "Lisa (Winnaar)", caption: "<strong>10. Winnaar (10/10):</strong> Lisa haalt 10 kaarten! Gouden confetti, haar volledige winnende tijdlijn (1969–2022), top-3 podium, feest-awards en 1-klik knop voor een nieuw potje." }
+  ];
+
+  // Interactive local state inside mockups
+  let currentState = "plaatsen";
+  let currentView = "both";
+  let bramSelectedSlot = 2; // 0..4 (2 = tussen 1984 en 1996)
+  let lisaStealSlot = 3;    // 0..4 (3 = tussen 1996 en 2014)
+  let bramClaimedBonus = true;
+  let silentGuessYear = 2001;
+  let flipTimer = null;
+
+  // ==================== INLINE SVG HELPERS ====================
+  function svgLogo(size = 48) {
+    return `
+      <span class="logo-lockup">
+        <svg width="${size}" height="${Math.round(size * 0.82)}" viewBox="0 0 64 52" fill="none">
+          <path d="M10 34 A22 22 0 0 1 54 34" stroke="#F7F3E9" stroke-width="4" stroke-linecap="round"/>
+          <path d="M18 34 A14 14 0 0 1 46 34" stroke="#A8B3C5" stroke-width="2.5" stroke-opacity="0.65"/>
+          <path d="M25 34 A7 7 0 0 1 39 34" fill="#F5A623"/>
+          <line x1="4" y1="40" x2="60" y2="40" stroke="#F5A623" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="14" cy="40" r="4" fill="#F7F3E9"/>
+          <circle cx="32" cy="40" r="6" fill="#F5A623"/>
+          <circle cx="50" cy="40" r="4" fill="#F7F3E9"/>
+        </svg>
+        <span class="logo-text" style="font-size:${Math.round(size * 0.72)}px"><span class="t1">TUNE</span><span class="t2">TIMELINE</span></span>
+      </span>`;
+  }
+
+  function svgQR(size = 280) {
+    // Clean stylized vector QR pattern (deterministic matrix, looks crisp & real)
+    const pattern = [
+      "111111101011001111111",
+      "100000100101101000001",
+      "101110101110001011101",
+      "101110100010101011101",
+      "101110101001101011101",
+      "100000101100001000001",
+      "111111101010101111111",
+      "000000001101000000000",
+      "101101110011110110101",
+      "010010001100101001010",
+      "110111101011011101100",
+      "001001010100100010011",
+      "111010111011011011101",
+      "000000001001101001010",
+      "111111100110101010110",
+      "100000101001010101001",
+      "101110101110101110101",
+      "101110100011010001011",
+      "101110101100111010100",
+      "100000100110000101110",
+      "111111101011101100101"
+    ];
+    let rects = "";
+    for (let y = 0; y < pattern.length; y++) {
+      for (let x = 0; x < pattern[y].length; x++) {
+        if (pattern[y][x] === "1") {
+          rects += `<rect x="${x}" y="${y}" width="1" height="1" rx="0.16" fill="#0D1117"/>`;
+        }
+      }
+    }
+    return `<svg width="${size}" height="${size}" viewBox="0 0 21 21" shape-rendering="crispEdges">${rects}</svg>`;
+  }
+
+  function svgDecadeArt(color, compact = false) {
+    // Original abstract geometric vinyl placeholder art — zero copyrighted imagery
+    const h = compact ? 128 : 210;
+    const cy = compact ? 64 : 108;
+    const r1 = compact ? 50 : 82;
+    const r2 = compact ? 38 : 64;
+    const r3 = compact ? 27 : 46;
+    const r4 = compact ? 17 : 28;
+    const r5 = compact ? 5 : 8;
+    return `
+      <svg width="100%" height="100%" viewBox="0 0 390 ${h}" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="gArt${compact ? "C" : "F"}" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.92"/>
+            <stop offset="100%" stop-color="#111827"/>
+          </linearGradient>
+        </defs>
+        <rect width="390" height="${h}" fill="url(#gArt${compact ? "C" : "F"})"/>
+        <circle cx="195" cy="${cy}" r="${r1}" fill="#0D1117" fill-opacity="0.72" stroke="#F7F3E9" stroke-opacity="0.22" stroke-width="2"/>
+        <circle cx="195" cy="${cy}" r="${r2}" fill="none" stroke="#F7F3E9" stroke-opacity="0.16" stroke-width="1.5"/>
+        <circle cx="195" cy="${cy}" r="${r3}" fill="none" stroke="#F7F3E9" stroke-opacity="0.2" stroke-width="1.5"/>
+        <circle cx="195" cy="${cy}" r="${r4}" fill="${color}" stroke="#F7F3E9" stroke-width="2.5"/>
+        <circle cx="195" cy="${cy}" r="${r5}" fill="#0D1117"/>
+        <rect x="20" y="16" width="76" height="24" rx="12" fill="#0D1117" fill-opacity="0.62"/>
+        <text x="58" y="32" text-anchor="middle" fill="#F7F3E9" font-size="13" font-weight="800" font-family="sans-serif">ZEROES</text>
+      </svg>`;
+  }
+
+  // ==================== TV COMPONENT RENDERERS ====================
+  function renderTopRail(players, activeId, is10 = false) {
+    return `
+      <div class="tv-top-rail ${is10 ? "rail-10" : ""}">
+        ${players.map(p => {
+          const isAct = p.id === activeId;
+          const isMatch = p.cards >= 8 && !isAct;
+          const pct = Math.min(100, (p.cards / 10) * 100);
+          return `
+            <div class="tv-player-pill ${isAct ? "active" : ""} ${isMatch ? "matchpoint" : ""} ${p.online === false ? "offline" : ""}">
+              ${isMatch ? `<span class="match-tag">MATCH</span>` : ""}
+              <div class="tv-pill-row1">
+                <span class="p-avatar" style="background:${p.color}">${p.icon}</span>
+                <span class="p-name">${p.name}</span>
+                ${p.online === false ? `<span title="Verbinding verbroken" style="font-size:14px;color:var(--mist)">☁</span>` : ""}
+              </div>
+              <div class="tv-pill-row2">
+                <span class="p-score num">${p.cards}<span>/10</span></span>
+                <span class="p-tokens num"><span class="token-dot">●</span>${p.tokens}</span>
+              </div>
+              <div class="p-progress"><div class="p-progress-fill" style="width:${pct}%;background:${p.color}"></div></div>
+            </div>`;
+        }).join("")}
+      </div>`;
+  }
+
+  function renderTvBottom(leftHtml, reactionsHtml = "") {
+    return `
+      <div class="tv-bottom">
+        <div class="tv-bottom-left">${leftHtml}</div>
+        <div class="tv-reactions">${reactionsHtml}</div>
+        <div class="tv-bottom-qr">
+          <div class="room-chip">
+            <span class="lbl">Meedoen</span>
+            <span class="code">KICK</span>
+          </div>
+          <div class="mini-qr-box">${svgQR(48)}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderTvOpenCard(c) {
+    const d = decadeInfo(c.year);
+    return `
+      <div class="tv-card">
+        <div class="tv-card-strip" style="background:${d.color}"></div>
+        <div class="tv-card-body">
+          <div class="tv-card-decade" style="color:${d.color}">${d.label}</div>
+          <div class="tv-card-year num">${c.year}</div>
+          <div class="tv-card-meta">
+            <div class="tv-card-artist">${c.artist}</div>
+            <div class="tv-card-title">${c.title}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderTvMysteryCard(tagText, locked = false) {
+    return `
+      <div class="tv-card mystery ${locked ? "locked" : ""}">
+        <div class="tv-card-body" style="justify-content:space-between;padding-top:26px">
+          <div class="tv-card-decade" style="color:${locked ? "var(--ivory)" : "var(--amber)"}">${locked ? "🔒 VASTGEZET" : "RAADSELKAART"}</div>
+          <div class="mystery-q">?</div>
+          <div class="mystery-tag">${tagText}</div>
+        </div>
+      </div>`;
+  }
+
+  function slotLabelBetween(cards, idx) {
+    if (idx === 0) return `Vóór ${cards[0].year}`;
+    if (idx === cards.length) return `Ná ${cards[cards.length - 1].year}`;
+    return `${cards[idx - 1].year} – ${cards[idx].year}`;
+  }
+
+  function renderTvTimeline(cards, opts = {}) {
+    const {
+      showSlots = false,
+      mysteryIdx = -1,
+      mysteryLocked = false,
+      steals = {}, // idx -> { name, icon, color }
+      dense = false,
+      win10 = false
+    } = opts;
+
+    let items = "";
+    for (let i = 0; i <= cards.length; i++) {
+      if (i === mysteryIdx) {
+        items += renderTvMysteryCard(slotLabelBetween(cards, i), mysteryLocked);
+      } else if (steals[i]) {
+        const s = steals[i];
+        items += `
+          <div class="tv-slot stolen" style="border-color:${s.color};background:${s.color}29">
+            <div class="steal-chip-badge">
+              <div class="steal-chip-circle" style="background:${s.color}">${s.icon}</div>
+              <div class="steal-chip-name">${s.name}</div>
+              <div class="steal-chip-lbl">STEAL!</div>
+            </div>
+          </div>`;
+      } else if (showSlots) {
+        items += `<div class="tv-slot"><span>+</span><span class="slot-num">Plek ${i + 1}</span></div>`;
+      }
+      if (i < cards.length) {
+        items += renderTvOpenCard(cards[i]);
+      }
+    }
+    return `
+      <div class="tv-timeline-stage">
+        <div class="timeline-axis-labels">
+          <span>← Ouder</span>
+          <span>Tijdlijn (${cards.length} / 10 kaarten)</span>
+          <span>Nieuwer →</span>
+        </div>
+        <div class="tv-timeline-track ${dense ? "dense" : ""} ${win10 ? "win10" : ""}">
+          ${items}
+        </div>
+      </div>`;
+  }
+
+  // ==================== PHONE HELPER RENDERERS ====================
+  function renderPhoneStatus(player, showHostGear = false) {
+    return `
+      <div class="ph-status-bar">
+        <div class="ph-user">
+          <span class="p-avatar" style="background:${player.color}">${player.icon}</span>
+          <span>${player.name}</span>
+        </div>
+        <div class="ph-stats">
+          <span class="ph-pill num">🎵 ${player.cards}/10</span>
+          <span class="ph-pill tok num"><span class="token-dot" style="width:15px;height:15px;font-size:9px">●</span>${player.tokens}</span>
+          ${showHostGear ? `<span class="ph-pill" style="border-color:var(--amber);color:var(--amber)">⚙ Host</span>` : ""}
+        </div>
+      </div>`;
+  }
+
+  function renderPhoneVTimeline(cards, mode, opts = {}) {
+    // mode: 'view' | 'place' | 'steal'
+    const { selectedIdx = -1, lockedIdx = -1, lockedName = "Bram", stealIdx = -1 } = opts;
+    let html = `<div class="ph-vtimeline">`;
+    for (let i = 0; i <= cards.length; i++) {
+      const rangeLbl = i === 0
+        ? `Vóór ${cards[0].year}`
+        : i === cards.length
+          ? `Ná ${cards[cards.length - 1].year}`
+          : `Tussen ${cards[i - 1].year} en ${cards[i].year}`;
+
+      if (mode === "place") {
+        const isSel = i === selectedIdx;
+        html += `
+          <button class="ph-slot-btn ${isSel ? "selected" : ""}" data-place-slot="${i}">
+            ${isSel ? `<span>?</span> <span>Jouw keuze · ${rangeLbl}</span>` : `<span>+</span> <span>${rangeLbl}</span>`}
+          </button>`;
+      } else if (mode === "steal") {
+        if (i === lockedIdx) {
+          html += `<div class="ph-slot-btn locked-other">🔒 ${lockedName}'s keuze (${rangeLbl})</div>`;
+        } else {
+          const isSt = i === stealIdx;
+          html += `
+            <button class="ph-slot-btn ${isSt ? "steal-selected" : ""}" data-steal-slot="${i}">
+              ${isSt ? `<span>⚡</span> <span>Jouw STEAL · ${rangeLbl}</span>` : `<span>+</span> <span>Steal: ${rangeLbl}</span>`}
+            </button>`;
+        }
+      }
+
+      if (i < cards.length) {
+        const c = cards[i];
+        const d = decadeInfo(c.year);
+        html += `
+          <div class="ph-tcard" style="border-left-color:${d.color}">
+            <div class="yr num">${c.year}</div>
+            <div class="meta">
+              <div class="art">${c.artist}</div>
+              <div class="ttl">${c.title}</div>
+            </div>
+          </div>`;
+      }
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  // ==================== ALL 10 STATES RENDERER ====================
+  function renderState(id) {
+    currentState = id;
+    const st = STATES.find(s => s.id === id) || STATES[0];
+    const tv = document.getElementById("tvCanvas");
+    const ph = document.getElementById("phoneCanvas");
+    ph.className = "phone-canvas";
+
+    document.getElementById("stateCaption").innerHTML =
+      `<span>${st.caption}</span><span style="color:var(--amber);font-weight:700">Midnight Vinyl &amp; Amber Brass</span>`;
+    document.getElementById("phonePerspectiveLbl").textContent = `Telefoonscherm (${st.phoneWho})`;
+    document.getElementById("tvMetaPill").textContent =
+      (id === "tv10" || id === "tussenstand10") ? "1920 × 1080 · 10 spelers" : "1920 × 1080 · 16:9";
+
+    if (flipTimer) { clearTimeout(flipTimer); flipTimer = null; }
+
+    // 1. LOBBY
+    if (id === "lobby") {
+      tv.innerHTML = `
+        <div class="tv-lobby-grid">
+          <div class="lobby-left">
+            <div>
+              ${svgLogo(56)}
+              <p style="font-size:23px;color:var(--mist);margin-top:12px">Zet de hits op de juiste plek</p>
+            </div>
+            <div class="qr-big-frame">${svgQR(292)}</div>
+            <div class="lobby-code-box">
+              <span class="url">Scan de QR-code of ga naar <strong style="color:var(--ivory)">tunetimeline.nl</strong></span>
+              <span class="big-code">KICK</span>
+            </div>
+          </div>
+          <div class="lobby-right">
+            <div class="lobby-panel" style="flex:1">
+              <h2>
+                <span>Spelers in de kamer</span>
+                <span style="color:var(--amber);font-size:26px" class="num">4 / 10</span>
+              </h2>
+              <div class="lobby-players-grid">
+                ${PLAYERS_4.map(p => `
+                  <div class="lobby-p-slot">
+                    <span style="display:flex;align-items:center;gap:14px">
+                      <span class="p-avatar" style="width:38px;height:38px;font-size:17px;background:${p.color}">${p.icon}</span>
+                      <span>${p.name}</span>
+                      ${p.id === "bram" ? `<span style="font-size:13px;background:var(--amber-soft);color:var(--amber);padding:3px 9px;border-radius:999px">HOST</span>` : ""}
+                    </span>
+                    <span class="online-dot"></span>
+                  </div>`).join("")}
+                ${[5,6,7,8,9,10].map(n => `<div class="lobby-p-slot empty"><span>Plek ${n} — wacht op speler…</span></div>`).join("")}
+              </div>
+            </div>
+            <div class="lobby-panel" style="padding:24px 32px">
+              <div class="settings-chips">
+                <div class="setting-chip">Playlist:<span>Hitster NL + Int (312)</span></div>
+                <div class="setting-chip">Doel:<span>10 kaarten</span></div>
+                <div class="setting-chip">Modus:<span>Original (2 tokens)</span></div>
+                <div class="setting-chip">Timer:<span>45 sec</span></div>
+                <div class="setting-chip">Spotify:<span>● Verbonden</span></div>
+              </div>
+            </div>
+            <div class="tv-cta-row">
+              <div class="tv-btn-primary">▶ Start spel met 4 spelers</div>
+              <div class="tv-btn-secondary">? Uitleg tonen</div>
+            </div>
+          </div>
+        </div>`;
+
+      ph.innerHTML = `
+        <div class="ph-status-bar" style="justify-content:center">
+          ${svgLogo(28)}
+        </div>
+        <div class="ph-body" style="justify-content:space-between;padding-top:20px">
+          <div>
+            <div style="display:inline-flex;align-items:center;gap:8px;background:var(--emerald-soft);color:var(--emerald);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:800;margin-bottom:14px">
+              ● Verbonden met kamer KICK
+            </div>
+            <h2 style="font-family:var(--font-display);font-size:28px;font-weight:800;margin-bottom:6px">Wie ben jij?</h2>
+            <p style="font-size:15px;color:var(--mist);margin-bottom:16px">Kies je voornaam en een eigen kleur voor op het tv-scherm.</p>
+            <label style="display:block;font-size:13px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Jouw naam</label>
+            <input class="ph-input" value="Noor" readonly aria-label="Jouw naam">
+          </div>
+          <div>
+            <label style="display:block;font-size:13px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px">Kies jouw kleur &amp; symbool</label>
+            <div class="color-grid">
+              ${PLAYERS_10.map((p, idx) => {
+                const takenBy = idx < 3 ? p.name : null;
+                const isPicked = p.id === "noor";
+                return `
+                  <div class="color-swatch ${isPicked ? "picked" : ""} ${takenBy ? "taken" : ""}" style="background:${p.color}">
+                    <span>${p.icon}</span>
+                    ${takenBy ? `<span class="taken-lbl">${takenBy}</span>` : ""}
+                  </div>`;
+              }).join("")}
+            </div>
+          </div>
+          <div class="ph-banner" style="padding:12px 14px">
+            <span style="font-size:14px;color:var(--mist)">Jouw badge op tv:</span>
+            <span style="display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px">
+              <span class="p-avatar" style="background:#3B82F6;width:26px;height:26px;font-size:12px">■</span> Noor
+            </span>
+          </div>
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn amber">✓ Klaar, ik doe mee!</button>
+        </div>`;
+    }
+
+    // 2. BEURTSTART
+    else if (id === "beurtstart") {
+      tv.innerHTML = `
+        ${renderTopRail(PLAYERS_4, "bram")}
+        <div class="tv-main">
+          <div class="tv-turn-header">
+            <div class="vinyl-cluster">
+              <div class="vinyl-disc"></div>
+              <div class="turn-title-block">
+                <div class="eyebrow">● Ronde 5 · Beurtstart</div>
+                <h1>Bram is aan de beurt!</h1>
+                <div class="sub">Wachten tot Bram het nummer start… (start automatisch over <strong class="num" style="color:var(--ivory)">5s</strong>)</div>
+              </div>
+            </div>
+            <div class="tv-timer-box">
+              <div class="t-lbl">Start over</div>
+              <div class="t-val num">5s</div>
+            </div>
+          </div>
+          ${renderTvTimeline(BRAM_CARDS_4, { showSlots: false })}
+        </div>
+        ${renderTvBottom(`Ronde <strong>5</strong> · Modus: <strong>Original</strong>`, `<span class="reaction-bubble">🎵 Volgende scheidsrechter: <strong>Lisa</strong></span>`)}`;
+
+      ph.classList.add("ring-amber");
+      const bramRich = { ...PLAYERS_4[0], tokens: 3 }; // toon ook koop-optie bij 3 tokens
+      ph.innerHTML = `
+        ${renderPhoneStatus(bramRich, true)}
+        <div class="ph-body" style="justify-content:space-between">
+          <div class="ph-banner amber" style="flex-direction:column;align-items:flex-start;gap:6px;padding:18px">
+            <span style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--amber)">● Het is jouw beurt!</span>
+            <h2 style="font-family:var(--font-display);font-size:28px;font-weight:900;line-height:1.1">Klaar voor nummer #18?</h2>
+            <p style="font-size:14.5px;color:var(--mist)">Luister op de tv en plaats de hit op de juiste plek in jouw tijdlijn.</p>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Jouw tijdlijn (4 / 10)</div>
+            ${renderPhoneVTimeline(BRAM_CARDS_4, "view")}
+          </div>
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn ghost" style="border-color:rgba(245,166,35,0.55);color:var(--amber)">🪙 Koop 1 gratis kaart (3 tokens)</button>
+          <button class="ph-btn amber">▶ Start nummer</button>
+        </div>`;
+    }
+
+    // 3. NUMMER SPEELT
+    else if (id === "speelt") {
+      tv.innerHTML = `
+        ${renderTopRail(PLAYERS_4, "bram")}
+        <div class="tv-main">
+          <div class="tv-turn-header">
+            <div class="vinyl-cluster">
+              <div class="vinyl-disc spinning"></div>
+              <div class="turn-title-block">
+                <div class="eyebrow">▶ Nummer #18 speelt <span class="eq-bars"><i></i><i></i><i></i><i></i></span></div>
+                <h1>Waar hoort deze hit, Bram?</h1>
+                <div class="claim-pill">🎤 Bram claimt titel &amp; artiest (+1 token kans)</div>
+              </div>
+            </div>
+            <div class="tv-timer-box">
+              <div class="t-lbl">Tijd over</div>
+              <div class="t-val num">34s</div>
+            </div>
+          </div>
+          ${renderTvTimeline(BRAM_CARDS_4, { showSlots: true })}
+        </div>
+        ${renderTvBottom(`Actief: <strong>Bram</strong> · 4 kaarten`, `<span class="reaction-bubble">🔥 Lisa: Banger!</span><span class="reaction-bubble">🎤 Ties: Meezingen!</span>`)}`;
+
+      ph.classList.add("ring-amber");
+      ph.innerHTML = `
+        ${renderPhoneStatus(PLAYERS_4[0], true)}
+        <div class="ph-body">
+          <div class="ph-banner amber">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:0.08em">▶ Nummer #18 speelt op tv</div>
+              <div style="font-size:16px;font-weight:800;margin-top:2px">Tik op een plek in je tijdlijn</div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:900;color:var(--amber)" class="num">34s</div>
+          </div>
+          <div class="ph-tools-row">
+            <button class="ph-chip-btn">⏭ Skip (1●)</button>
+            <button class="ph-chip-btn ${bramClaimedBonus ? "on" : ""}" id="bonusToggleBtn">
+              🎤 Titel &amp; artiest ${bramClaimedBonus ? "AAN (+1●)" : "claimen"}
+            </button>
+          </div>
+          ${renderPhoneVTimeline(BRAM_CARDS_4, "place", { selectedIdx: -1 })}
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn disabled">Kies eerst een plek hierboven</button>
+        </div>`;
+    }
+
+    // 4. PLAATSEN (LIVE — interactief!)
+    else if (id === "plaatsen") {
+      const rangeTxt = slotLabelBetween(BRAM_CARDS_4, bramSelectedSlot);
+      tv.innerHTML = `
+        ${renderTopRail(PLAYERS_4, "bram")}
+        <div class="tv-main">
+          <div class="tv-turn-header">
+            <div class="vinyl-cluster">
+              <div class="vinyl-disc spinning"></div>
+              <div class="turn-title-block">
+                <div class="eyebrow">● Live keuze <span class="eq-bars"><i></i><i></i><i></i><i></i></span></div>
+                <h1>Bram kiest: ${rangeTxt}</h1>
+                <div class="claim-pill">🎤 Bram claimt titel &amp; artiest (+1 token kans)</div>
+              </div>
+            </div>
+            <div class="tv-timer-box">
+              <div class="t-lbl">Tijd over</div>
+              <div class="t-val num">21s</div>
+            </div>
+          </div>
+          ${renderTvTimeline(BRAM_CARDS_4, { showSlots: true, mysteryIdx: bramSelectedSlot, mysteryLocked: false })}
+        </div>
+        ${renderTvBottom(`Bram kiest live op telefoon · Nog niet vastgezet`, `<span class="reaction-bubble">🫣 Lisa: Oei, gewaagd!</span>`)}`;
+
+      ph.classList.add("ring-amber");
+      ph.innerHTML = `
+        ${renderPhoneStatus(PLAYERS_4[0], true)}
+        <div class="ph-body">
+          <div class="ph-banner amber">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:0.08em">● Live op tv te zien</div>
+              <div style="font-size:16px;font-weight:800;margin-top:2px">Gekozen: ${rangeTxt}</div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:26px;font-weight:900;color:var(--amber)" class="num">21s</div>
+          </div>
+          <div class="ph-tools-row">
+            <button class="ph-chip-btn">⏭ Skip (1●)</button>
+            <button class="ph-chip-btn ${bramClaimedBonus ? "on" : ""}" id="bonusToggleBtn">
+              🎤 Titel &amp; artiest ${bramClaimedBonus ? "AAN (+1●)" : "claimen"}
+            </button>
+          </div>
+          ${renderPhoneVTimeline(BRAM_CARDS_4, "place", { selectedIdx: bramSelectedSlot })}
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn amber" id="confirmPlaceBtn">✓ Vastzetten (${rangeTxt})</button>
+        </div>`;
+    }
+
+    // 5. STEAL-VENSTER
+    else if (id === "steal") {
+      const stealMap = {};
+      stealMap[lisaStealSlot] = PLAYERS_4[1]; // Lisa
+      tv.innerHTML = `
+        ${renderTopRail(PLAYERS_4, "bram")}
+        <div class="tv-main">
+          <div class="steal-banner">
+            <div>
+              <h2>⚡ VASTGEZET — WIL IEMAND STELEN?</h2>
+              <p>Bram koos <strong>1984 – 1996</strong>. Zit hij fout? Tik op <strong>STEAL!</strong> voor 1 token!</p>
+            </div>
+            <div class="tv-timer-box urgent" style="min-width:170px;padding:12px 22px">
+              <div class="t-lbl" style="color:#FFB3C4">Sluit over</div>
+              <div class="t-val num">6s</div>
+            </div>
+            <div class="steal-progress-track"><div class="steal-progress-bar"></div></div>
+          </div>
+          ${renderTvTimeline(BRAM_CARDS_4, { showSlots: true, mysteryIdx: 2, mysteryLocked: true, steals: stealMap })}
+        </div>
+        ${renderTvBottom(`Steal-venster open · <strong>1 steal geclaimd</strong>`, `<span class="reaction-bubble" style="border-color:var(--coral)">⚡ Lisa stealt plek ${lisaStealSlot + 1}!</span>`)}`;
+
+      ph.classList.add("ring-coral");
+      const stealRange = slotLabelBetween(BRAM_CARDS_4, lisaStealSlot);
+      ph.innerHTML = `
+        ${renderPhoneStatus(PLAYERS_4[1])}
+        <div class="ph-body">
+          <div class="ph-banner coral" style="position:relative;overflow:hidden;padding-bottom:17px">
+            <div>
+              <div style="font-size:12px;font-weight:900;color:var(--coral);text-transform:uppercase;letter-spacing:0.08em">⚡ STEAL-KANS OPEN!</div>
+              <div style="font-size:15.5px;font-weight:800;margin-top:2px">Kies waar het nummer écht hoort</div>
+            </div>
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--coral)" class="num">6s</div>
+            <div class="steal-progress-track" style="height:5px"><div class="steal-progress-bar"></div></div>
+          </div>
+          ${renderPhoneVTimeline(BRAM_CARDS_4, "steal", { lockedIdx: 2, lockedName: "Bram", stealIdx: lisaStealSlot })}
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn coral" id="confirmStealBtn">⚡ STEAL op ${stealRange} (1 token)</button>
+          <button class="ph-btn ghost">Pas · Doorgaan</button>
+        </div>`;
+    }
+
+    // 6. ONTHULLING (3D FLIP)
+    else if (id === "onthulling") {
+      tv.innerHTML = `
+        ${renderTopRail(PLAYERS_4, "bram")}
+        <div class="tv-main">
+          <div class="reveal-layout">
+            <div class="flip-scene">
+              <div class="flip-card" id="flipCardEl">
+                <div class="flip-face flip-front">
+                  <div style="font-size:22px;font-weight:800;letter-spacing:0.12em;color:var(--amber)">ONTHULLING…</div>
+                  <div class="mystery-q" style="font-size:138px">?</div>
+                  <div class="mystery-tag" style="font-size:20px;padding:10px 22px">🔒 1984 – 1996</div>
+                </div>
+                <div class="flip-face flip-back">
+                  <div class="reveal-art">${svgDecadeArt("#3B82F6")}</div>
+                  <div class="reveal-info">
+                    <div style="font-size:16px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#3B82F6">Oorspronkelijk uitgavejaar</div>
+                    <div class="reveal-year num">2003</div>
+                    <div>
+                      <div class="reveal-artist">OutKast</div>
+                      <div class="reveal-song">Hey Ya!</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="reveal-right">
+              <div class="result-hero-banner coral">
+                <div class="tag">✕ Net mis voor Bram — maar wacht!</div>
+                <h2>2003 hoorde tussen 1996 en 2014!</h2>
+                <p>Bram legde de kaart tussen 1984 en 1996. <strong>Lisa's steal-chip ligt op precies de goede plek!</strong></p>
+              </div>
+              <div class="referee-box">
+                <div>
+                  <h3>🎤 Titel &amp; artiest beoordelen</h3>
+                  <p>Bram noemde hardop titel &amp; artiest. <strong>Lisa (scheidsrechter)</strong> keurt op haar telefoon…</p>
+                </div>
+                <span class="p-avatar" style="width:52px;height:52px;font-size:22px;background:#EF476F">▲</span>
+              </div>
+              <button class="replay-flip-btn" id="replayFlipBtn">↻ 3D-kaartflip opnieuw afspelen</button>
+            </div>
+          </div>
+        </div>
+        ${renderTvBottom(`Onthulling · Bron jaartal: <strong>MusicBrainz (2003-08-25)</strong>`, `<span class="reaction-bubble">😱 Noor: 2003 alweer?!</span>`)}`;
+
+      // Trigger smooth 3D flip shortly after render (instant in capture mode)
+      const params = new URLSearchParams(window.location.search);
+      const isInstantFlip = params.get("capture") === "1";
+      const fc = document.getElementById("flipCardEl");
+      if (isInstantFlip) {
+        fc.style.transition = "none";
+        fc.classList.add("flipped");
+      } else {
+        flipTimer = setTimeout(() => { fc && fc.classList.add("flipped"); }, 180);
+      }
+
+      ph.classList.add("ring-amber");
+      ph.innerHTML = `
+        ${renderPhoneStatus(PLAYERS_4[1])}
+        <div class="ph-body" style="justify-content:space-between">
+          <div style="text-align:center;padding-top:6px">
+            <span style="display:inline-block;background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber);padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800;letter-spacing:0.08em;text-transform:uppercase">⚖ Jij bent beurt-scheidsrechter</span>
+            <h2 style="font-family:var(--font-display);font-size:25px;font-weight:900;margin-top:12px;line-height:1.15">Noemde Bram titel &amp; artiest goed?</h2>
+            <p style="font-size:14.5px;color:var(--mist);margin-top:6px">Klopt het met wat Bram net hardop zei in de kamer?</p>
+          </div>
+          <div style="background:var(--surface);border:2px solid #3B82F6;border-radius:20px;overflow:hidden">
+            <div style="height:128px">${svgDecadeArt("#3B82F6", true)}</div>
+            <div style="padding:18px;text-align:center">
+              <div style="font-family:var(--font-display);font-size:44px;font-weight:900;line-height:1" class="num">2003</div>
+              <div style="font-size:22px;font-weight:800;margin-top:8px">OutKast</div>
+              <div style="font-size:17px;color:var(--mist);margin-top:2px">Hey Ya!</div>
+            </div>
+          </div>
+          <div class="ph-banner" style="font-size:13.5px;color:var(--mist)">
+            <span>💡 Ook bij een foute plek krijgt Bram +1 token als titel &amp; artiest kloppen.</span>
+          </div>
+        </div>
+        <div class="ph-footer" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <button class="ph-btn coral">✕ Nee</button>
+          <button class="ph-btn emerald" id="approveBonusBtn">✓ Ja (+1●)</button>
+        </div>`;
+    }
+
+    // 7. STEAL-RESULTAAT
+    else if (id === "resultaat") {
+      const playersAfter = [
+        { ...PLAYERS_4[0], cards: 4, tokens: 3 },
+        { ...PLAYERS_4[1], cards: 6, tokens: 2 },
+        PLAYERS_4[2],
+        PLAYERS_4[3]
+      ];
+      const lisaAfterCards = [
+        { year: 1969, artist: "The Beatles", title: "Here Comes the Sun" },
+        { year: 1982, artist: "Michael Jackson", title: "Billie Jean" },
+        { year: 1991, artist: "Nirvana", title: "Smells Like Teen Spirit" },
+        { year: 2003, artist: "OutKast", title: "Hey Ya!", fresh: true },
+        { year: 2008, artist: "Lady Gaga", title: "Poker Face" },
+        { year: 2014, artist: "Mark Ronson", title: "Uptown Funk" }
+      ];
+      tv.innerHTML = `
+        ${renderTopRail(playersAfter, "lisa")}
+        <div class="tv-main" style="gap:18px">
+          <div class="result-hero-banner steal-win" style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px 32px">
+            <div>
+              <div class="tag">⚡ Geslaagde Steal!</div>
+              <h2>Lisa steelt 2003 — Hey Ya!</h2>
+              <p>Bram zat op 1984–1996. De kaart is direct op de juiste plek in <strong>Lisa's tijdlijn (6 / 10)</strong> gezet.</p>
+            </div>
+            <div class="token-delta-row" style="flex-direction:column;gap:10px;align-items:flex-end">
+              <div class="delta-chip pos" style="padding:10px 18px;font-size:19px">▲ Lisa: +1 kaart (6/10) · −1 token</div>
+              <div class="delta-chip pos" style="padding:10px 18px;font-size:19px;border-color:var(--amber);color:var(--amber)">● Bram: +1 token (titel &amp; artiest goed!)</div>
+            </div>
+          </div>
+
+          <div class="tv-timeline-stage" style="padding:4px 0">
+            <div class="timeline-axis-labels" style="margin-bottom:12px">
+              <span>← Ouder</span>
+              <span style="color:var(--emerald)">▲ Lisa's bijgewerkte tijdlijn (6 / 10 kaarten)</span>
+              <span>Nieuwer →</span>
+            </div>
+            <div class="tv-timeline-track">
+              ${lisaAfterCards.map(c => {
+                const d = decadeInfo(c.year);
+                const freshStyle = c.fresh
+                  ? `border-color:#22C57E;box-shadow:0 0 0 5px rgba(34,197,126,0.22),0 18px 40px rgba(0,0,0,0.6);transform:translateY(-10px)`
+                  : ``;
+                return `
+                  <div class="tv-card" style="width:210px;height:256px;${freshStyle}">
+                    <div class="tv-card-strip" style="background:${d.color}"></div>
+                    <div class="tv-card-body">
+                      <div class="tv-card-decade" style="color:${c.fresh ? "#22C57E" : d.color}">${c.fresh ? "⚡ GESTOLEN!" : d.label}</div>
+                      <div class="tv-card-year num" style="font-size:50px">${c.year}</div>
+                      <div class="tv-card-meta">
+                        <div class="tv-card-artist">${c.artist}</div>
+                        <div class="tv-card-title">${c.title}</div>
+                      </div>
+                    </div>
+                  </div>`;
+              }).join("")}
+            </div>
+          </div>
+
+          <div style="background:var(--surface);border:1.5px solid rgba(255,255,255,0.08);border-radius:18px;padding:16px 26px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:21px;color:var(--mist)">Volgende beurt: <strong style="color:var(--ivory)">▲ Lisa</strong> (start over <strong class="num" style="color:var(--amber)">4s</strong>)</span>
+            <span style="font-size:19px;font-weight:700;color:var(--emerald)">✓ Alle tokens &amp; tijdlijnen bijgewerkt</span>
+          </div>
+        </div>
+        ${renderTvBottom(`Ronde 5 afgerond`, `<span class="reaction-bubble">🔥 Ties: Wat een steal!</span>`)}`;
+
+      ph.classList.add("ring-emerald");
+      ph.innerHTML = `
+        ${renderPhoneStatus(playersAfter[1])}
+        <div class="ph-body" style="justify-content:space-between">
+          <div style="background:linear-gradient(155deg,rgba(34,197,126,0.22),var(--surface));border:2px solid var(--emerald);border-radius:20px;padding:22px 18px;text-align:center">
+            <div style="font-size:38px;margin-bottom:6px">⚡</div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--emerald)">Steal gelukt!</div>
+            <h2 style="font-family:var(--font-display);font-size:28px;font-weight:900;margin-top:4px">Kaart gestolen!</h2>
+            <p style="font-size:15px;color:var(--mist);margin-top:6px"><strong>2003 · OutKast — Hey Ya!</strong> staat nu in jouw tijdlijn.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:var(--surface);border:1.5px solid var(--emerald);border-radius:14px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--mist);font-weight:700;text-transform:uppercase">Kaarten</div>
+              <div style="font-family:var(--font-display);font-size:30px;font-weight:900;color:var(--emerald)" class="num">6 / 10</div>
+            </div>
+            <div style="background:var(--surface);border:1.5px solid var(--coral);border-radius:14px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--mist);font-weight:700;text-transform:uppercase">Tokens</div>
+              <div style="font-family:var(--font-display);font-size:30px;font-weight:900;color:var(--amber)" class="num">2 <span style="font-size:15px;color:var(--coral)">(-1)</span></div>
+            </div>
+          </div>
+          <div class="ph-banner amber">
+            <span style="font-size:14.5px;font-weight:700">▶ Maak je klaar — jij bent nu aan de beurt!</span>
+            <span class="num" style="font-weight:900;color:var(--amber)">4s</span>
+          </div>
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn ghost">Bekijk mijn tijdlijn (6 kaarten)</button>
+        </div>`;
+    }
+
+    // 8. TV MET 10 SPELERS (LIVE BEURT)
+    else if (id === "tv10") {
+      const steals10 = { 5: PLAYERS_10[0], 7: PLAYERS_10[1] }; // Lisa & Ties stealen!
+      tv.innerHTML = `
+        ${renderTopRail(PLAYERS_10, "bram", true)}
+        <div class="tv-main">
+          <div class="steal-banner" style="padding:16px 26px">
+            <div>
+              <h2 style="font-size:34px">⚡ 10 SPELERS LIVE — STEAL-VENSTER OPEN!</h2>
+              <p style="font-size:20px">Bram (7/10) zette vast tussen <strong>1992 en 1999</strong> · Lisa (9/10 MATCHPOINT!) &amp; Ties vallen aan!</p>
+            </div>
+            <div class="tv-timer-box urgent" style="min-width:155px;padding:10px 18px">
+              <div class="t-lbl" style="color:#FFB3C4">Sluit over</div>
+              <div class="t-val num" style="font-size:48px">5s</div>
+            </div>
+            <div class="steal-progress-track"><div class="steal-progress-bar" style="width:62%"></div></div>
+          </div>
+          ${renderTvTimeline(BRAM_CARDS_7, { showSlots: true, mysteryIdx: 4, mysteryLocked: true, steals: steals10, dense: true })}
+        </div>
+        ${renderTvBottom(
+          `Ronde <strong>8</strong> · 10 spelers (9 online, 1 afwezig)`,
+          `<span class="reaction-bubble">🔥 Noor: Banger!</span><span class="reaction-bubble">😱 Sem: Lisa op 9!!</span><span class="reaction-bubble">🎤 Eva: Meezingen</span>`
+        )}`;
+
+      ph.innerHTML = `
+        ${renderPhoneStatus(PLAYERS_10[3])}
+        <div class="ph-body">
+          <div class="ph-banner">
+            <div>
+              <div style="font-size:12px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:0.08em">● Bram is aan de beurt</div>
+              <div style="font-size:15.5px;font-weight:800;margin-top:2px">Vastgezet tussen 1992 en 1999</div>
+            </div>
+            <span style="font-size:13px;font-weight:800;color:var(--coral)" class="num">Steal 5s</span>
+          </div>
+
+          <div class="guess-card">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:13px;font-weight:800;color:#60A5FA;text-transform:uppercase;letter-spacing:0.06em">🎯 Stille meegok (voor de lol)</span>
+              <span style="font-family:var(--font-display);font-size:26px;font-weight:900;color:var(--ivory)" class="num" id="guessValLbl">${silentGuessYear}</span>
+            </div>
+            <input type="range" min="1960" max="2025" value="${silentGuessYear}" class="guess-slider" id="guessSlider" aria-label="Gok het jaartal">
+            <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--mist)"><span>1960</span><span>1990</span><span>2025</span></div>
+          </div>
+
+          <div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Stuur reactie naar de tv</div>
+            <div class="react-row">
+              <button class="react-btn"><span class="emo">🔥</span>Banger</button>
+              <button class="react-btn"><span class="emo">🫣</span>Gewaagd</button>
+              <button class="react-btn"><span class="emo">🤷</span>Geen idee</button>
+              <button class="react-btn"><span class="emo">🎤</span>Meezing</button>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--mist);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Jouw eigen tijdlijn (7 / 10)</div>
+            ${renderPhoneVTimeline([
+              { year: 1968, artist: "Otis Redding", title: "(Sittin' On) The Dock..." },
+              { year: 1989, artist: "Madonna", title: "Like a Prayer" },
+              { year: 2004, artist: "Usher", title: "Yeah!" }
+            ], "view")}
+          </div>
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn coral">⚡ STEAL-venster openen (4 tokens)</button>
+        </div>`;
+    }
+
+    // 9. TUSSENSTAND 10 SPELERS (2x5 GRID) + HOST-MENU
+    else if (id === "tussenstand10") {
+      tv.innerHTML = `
+        <div class="tv-main" style="padding:32px 44px 22px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:18px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--amber)">Tussenstand na ronde 8</div>
+              <h1 style="font-family:var(--font-display);font-size:44px;font-weight:900;margin-top:4px">Alle 10 tijdlijnen op een rij</h1>
+            </div>
+            <div style="display:flex;gap:14px;align-items:center">
+              <span class="setting-chip" style="font-size:18px;padding:10px 16px">Doel:<span>10 kaarten</span></span>
+              <span class="setting-chip" style="font-size:18px;padding:10px 16px;border-color:var(--coral)">🔥 Matchpoint:<span>Lisa (9)</span></span>
+            </div>
+          </div>
+          <div class="standings-grid">
+            ${PLAYERS_10.map((p, idx) => `
+              <div class="standing-row ${idx === 0 ? "top1" : ""}">
+                <div class="rank-num num">#${idx + 1}</div>
+                <div class="st-info">
+                  <div class="name">
+                    <span class="p-avatar" style="width:26px;height:26px;font-size:12px;background:${p.color}">${p.icon}</span>
+                    <span>${p.name}</span>
+                  </div>
+                  <div class="sub num">${p.cards}/10 kaarten · <span style="color:var(--amber)">● ${p.tokens}</span></div>
+                </div>
+                <div class="mini-timeline">
+                  ${p.years.map(y => {
+                    const d = decadeInfo(y);
+                    return `<div class="mini-card num" style="border-top-color:${d.color}">${String(y).slice(2)}</div>`;
+                  }).join("")}
+                </div>
+              </div>`).join("")}
+          </div>
+        </div>
+        ${renderTvBottom(`Door naar ronde 9 over <strong>4s</strong> · Toets <strong>S</strong> op pc of Host-menu op telefoon`, ``)}`;
+
+      ph.classList.add("ring-amber");
+      ph.innerHTML = `
+        ${renderPhoneStatus(PLAYERS_10[2], true)}
+        <div class="ph-body" style="justify-content:space-between">
+          <div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--amber);margin-bottom:6px">⚙ Host-bediening vanaf de bank</div>
+            <h2 style="font-family:var(--font-display);font-size:25px;font-weight:900">Spelleider-menu</h2>
+            <p style="font-size:14px;color:var(--mist);margin-top:4px">Bedien tv en muziek zonder naar de laptop te lopen.</p>
+          </div>
+
+          <div class="host-sheet">
+            <div class="host-action-btn"><span>⏸ Muziek pauzeren / hervatten</span><span style="color:var(--amber)">Speelt</span></div>
+            <div class="host-action-btn"><span>⏩ +15 sec vooruit (lange intro)</span><span style="color:var(--mist)">0:18</span></div>
+            <div class="host-action-btn"><span>📊 Tussenstand tonen op tv</span><span style="color:var(--emerald)">Actief</span></div>
+            <div class="host-action-btn"><span>⚖ Laatste token-keuring aanpassen</span><span style="color:var(--mist)">Override</span></div>
+            <div class="host-action-btn warn"><span>⏭ Afwezige speler overslaan (Jesse)</span><span>☁</span></div>
+          </div>
+
+          <div class="ph-banner" style="font-size:13.5px">
+            <span style="color:var(--emerald);font-weight:700">● Spotify Premium actief</span>
+            <span style="color:var(--mist)" class="num">Token 41m</span>
+          </div>
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn amber">← Terug naar mijn eigen spelbord</button>
+        </div>`;
+    }
+
+    // 10. WINNAAR
+    else if (id === "winnaar") {
+      const confettiColors = ["#F5A623","#EF476F","#22C57E","#3B82F6","#8B5CF6","#F7F3E9"];
+      const confettiSpots = [
+        [4,6,22],[9,15,64],[14,9,115],[6,26,140],[12,33,35],[18,24,80],
+        [83,8,45],[89,14,128],[94,7,15],[86,26,95],[92,31,150],[79,22,20],
+        [5,70,52],[11,64,110],[90,68,38],[95,60,124],[24,25,65],[74,26,130],
+        [34,27,18],[64,25,92],[48,27,48]
+      ];
+      let confetti = confettiSpots.map(([left, top, rot], i) => {
+        const col = confettiColors[i % confettiColors.length];
+        return `<span class="confetti-piece" style="left:${left}%;top:${top}%;background:${col};transform:rotate(${rot}deg)"></span>`;
+      }).join("");
+
+      tv.innerHTML = `
+        <div class="confetti-layer">${confetti}</div>
+        <div class="tv-main" style="padding:36px 44px 26px;justify-content:space-between">
+          <div class="winner-hero">
+            <div class="eyebrow">🏆 Eerste speler met 10 hits op volgorde</div>
+            <h1><span style="color:#EF476F">▲ Lisa</span> is de Tune Timeline-kampioen!</h1>
+          </div>
+
+          ${renderTvTimeline(LISA_WIN_10, { win10: true })}
+
+          <div class="awards-row">
+            <div class="award-card">
+              <div class="award-icon">🥇</div>
+              <div>
+                <div class="a-lbl">Podium Top 3</div>
+                <div class="a-name">1. Lisa (10) · 2. Ties (9) · 3. Bram (8)</div>
+                <div class="a-sub">Partijduur: 54 minuten · 68 hits gespeeld</div>
+              </div>
+            </div>
+            <div class="award-card">
+              <div class="award-icon">⚡</div>
+              <div>
+                <div class="a-lbl">Snelste Stealer</div>
+                <div class="a-name">▲ Lisa — 3 geslaagde steals</div>
+                <div class="a-sub">Snelste tik: 1,4 seconden na vastzetten</div>
+              </div>
+            </div>
+            <div class="award-card">
+              <div class="award-icon">🎯</div>
+              <div>
+                <div class="a-lbl">Beste Bank-Gokker</div>
+                <div class="a-name">■ Noor — gem. 2,8 jaar ernaast</div>
+                <div class="a-sub">🎤 Meeste titel+artiest bonus: Bram (5×)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tv-cta-row" style="position:relative;z-index:2">
+            <div class="tv-btn-primary">↻ Nog een potje (zelfde 10 spelers, nieuwe hits)</div>
+            <div class="tv-btn-secondary">Terug naar lobby</div>
+          </div>
+        </div>`;
+
+      ph.classList.add("ring-amber");
+      const lisaWin = { ...PLAYERS_10[0], cards: 10, tokens: 2 };
+      ph.innerHTML = `
+        ${renderPhoneStatus(lisaWin)}
+        <div class="ph-body" style="justify-content:space-between">
+          <div style="background:linear-gradient(155deg,rgba(245,166,35,0.26),rgba(239,71,111,0.18),var(--surface));border:2px solid var(--amber);border-radius:22px;padding:24px 18px;text-align:center">
+            <div style="font-size:48px;line-height:1">🏆</div>
+            <div style="font-size:12px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:var(--amber);margin-top:10px">Kampioen van de avond</div>
+            <h2 style="font-family:var(--font-display);font-size:32px;font-weight:900;margin-top:4px">Jij hebt gewonnen!</h2>
+            <p style="font-size:15px;color:var(--mist);margin-top:6px">10 hits op perfecte volgorde (1969 – 2022)</p>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:var(--surface);border:1.5px solid rgba(255,255,255,0.09);border-radius:14px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--mist);font-weight:700">GOED GEPLAATST</div>
+              <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--emerald)" class="num">6 / 8</div>
+            </div>
+            <div style="background:var(--surface);border:1.5px solid rgba(255,255,255,0.09);border-radius:14px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--mist);font-weight:700">STEALS RAAK</div>
+              <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--coral)" class="num">3× ⚡</div>
+            </div>
+            <div style="background:var(--surface);border:1.5px solid rgba(255,255,255,0.09);border-radius:14px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--mist);font-weight:700">TITEL + ARTIEST</div>
+              <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--amber)" class="num">4× 🎤</div>
+            </div>
+            <div style="background:var(--surface);border:1.5px solid rgba(255,255,255,0.09);border-radius:14px;padding:14px;text-align:center">
+              <div style="font-size:12px;color:var(--mist);font-weight:700">TOKENS OVER</div>
+              <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--amber);display:inline-flex;align-items:center;justify-content:center;gap:8px" class="num">2 <span class="token-dot" style="width:22px;height:22px;font-size:12px">●</span></div>
+            </div>
+          </div>
+
+          <div class="ph-banner amber" style="justify-content:center;text-align:center">
+            <span style="font-size:14px;font-weight:700">Wachten tot Bram een nieuw potje start… Je blijft automatisch verbonden!</span>
+          </div>
+        </div>
+        <div class="ph-footer">
+          <button class="ph-btn ghost">Bekijk mijn winnende 10 kaarten</button>
+        </div>`;
+    }
+
+    bindInteractiveHandlers();
+    updateActiveNav();
+    layoutSizes();
+  }
+
+  function bindInteractiveHandlers() {
+    document.querySelectorAll("[data-place-slot]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        bramSelectedSlot = Number(btn.getAttribute("data-place-slot"));
+        renderState("plaatsen");
+      });
+    });
+    document.querySelectorAll("[data-steal-slot]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        lisaStealSlot = Number(btn.getAttribute("data-steal-slot"));
+        renderState("steal");
+      });
+    });
+    const bonusBtn = document.getElementById("bonusToggleBtn");
+    if (bonusBtn) {
+      bonusBtn.addEventListener("click", () => {
+        bramClaimedBonus = !bramClaimedBonus;
+        renderState(currentState);
+      });
+    }
+    const confirmPlace = document.getElementById("confirmPlaceBtn");
+    if (confirmPlace) {
+      confirmPlace.addEventListener("click", () => renderState("steal"));
+    }
+    const confirmSteal = document.getElementById("confirmStealBtn");
+    if (confirmSteal) {
+      confirmSteal.addEventListener("click", () => renderState("onthulling"));
+    }
+    const approveBonus = document.getElementById("approveBonusBtn");
+    if (approveBonus) {
+      approveBonus.addEventListener("click", () => renderState("resultaat"));
+    }
+    const replayFlip = document.getElementById("replayFlipBtn");
+    if (replayFlip) {
+      replayFlip.addEventListener("click", () => {
+        const fc = document.getElementById("flipCardEl");
+        if (!fc) return;
+        fc.classList.remove("flipped");
+        setTimeout(() => fc.classList.add("flipped"), 120);
+      });
+    }
+    const slider = document.getElementById("guessSlider");
+    if (slider) {
+      slider.addEventListener("input", () => {
+        silentGuessYear = Number(slider.value);
+        const lbl = document.getElementById("guessValLbl");
+        if (lbl) lbl.textContent = silentGuessYear;
+      });
+    }
+  }
+
+  // ==================== NAVIGATION & RESPONSIVE SCALING ====================
+  function buildNav() {
+    const nav = document.getElementById("stateNav");
+    nav.innerHTML = STATES.map(s => `
+      <button class="state-btn" data-state="${s.id}">
+        <span class="step-num">${s.num}</span>${s.label}
+      </button>`).join("");
+    nav.querySelectorAll(".state-btn").forEach(btn => {
+      btn.addEventListener("click", () => renderState(btn.getAttribute("data-state")));
+    });
+
+    document.querySelectorAll(".view-btn").forEach(btn => {
+      btn.addEventListener("click", () => setViewMode(btn.getAttribute("data-view"), false));
+    });
+    document.getElementById("exitFsBtn").addEventListener("click", () => setViewMode("both", false));
+  }
+
+  function updateActiveNav() {
+    document.querySelectorAll(".state-btn").forEach(b => {
+      b.classList.toggle("active", b.getAttribute("data-state") === currentState);
+    });
+    document.querySelectorAll(".view-btn").forEach(b => {
+      b.classList.toggle("active", b.getAttribute("data-view") === currentView);
+    });
+  }
+
+  function setViewMode(mode, hideChrome = false) {
+    currentView = mode;
+    document.body.classList.remove("mode-tv", "mode-phone", "chrome-hidden", "show-exit-fs");
+    if (mode === "tv") document.body.classList.add("mode-tv");
+    if (mode === "phone") document.body.classList.add("mode-phone");
+    if (hideChrome) document.body.classList.add("chrome-hidden");
+    updateActiveNav();
+    layoutSizes();
+  }
+
+  function layoutSizes() {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const isChromeHidden = document.body.classList.contains("chrome-hidden");
+    const root = document.documentElement;
+
+    if (currentView === "tv") {
+      const padW = isChromeHidden ? 0 : 60;
+      const padH = isChromeHidden ? 0 : 190;
+      const availW = Math.max(320, vw - padW);
+      const availH = Math.max(200, vh - padH);
+      const scale = Math.min(availW / 1920, availH / 1080, 1);
+      root.style.setProperty("--tv-scale", scale.toFixed(6));
+      root.style.setProperty("--tv-w", `${Math.round(1920 * scale)}px`);
+      root.style.setProperty("--tv-h", `${Math.round(1080 * scale)}px`);
+    } else if (currentView === "phone") {
+      const padW = isChromeHidden ? 0 : 48;
+      const padH = isChromeHidden ? 0 : 190;
+      const availW = Math.max(240, vw - padW);
+      const availH = Math.max(400, vh - padH);
+      const scale = Math.min(availW / 390, availH / 844, 1);
+      root.style.setProperty("--ph-scale", scale.toFixed(6));
+      root.style.setProperty("--ph-w", `${Math.round(390 * scale)}px`);
+      root.style.setProperty("--ph-h", `${Math.round(844 * scale)}px`);
+    } else {
+      // Side by side: fit TV (16:9) + Phone (9:19.5) cleanly in ONE row on desktop
+      const chromeH = 195;
+      const availH = Math.max(360, vh - chromeH);
+      const phScale = Math.min(0.82, Math.max(0.56, (availH - 44) / 844));
+      const phW = Math.round(390 * phScale);
+      const phH = Math.round(844 * phScale);
+
+      // Account for bezels (tv 24px + phone 30px), stage padding (48px), gap (24px) = 126px
+      const availTvW = Math.max(480, vw - phW - 140);
+      const availTvH = Math.max(300, availH - 44);
+      const tvScale = Math.min(availTvW / 1920, availTvH / 1080, 0.72);
+      const tvW = Math.round(1920 * tvScale);
+      const tvH = Math.round(1080 * tvScale);
+
+      root.style.setProperty("--tv-scale", tvScale.toFixed(6));
+      root.style.setProperty("--tv-w", `${tvW}px`);
+      root.style.setProperty("--tv-h", `${tvH}px`);
+      root.style.setProperty("--ph-scale", phScale.toFixed(6));
+      root.style.setProperty("--ph-w", `${phW}px`);
+      root.style.setProperty("--ph-h", `${phH}px`);
+    }
+  }
+
+  // ==================== INIT (SUPPORT URL PARAMS FOR DIRECT TV/PHONE PREVIEW) ====================
+  buildNav();
+  const params = new URLSearchParams(window.location.search);
+  const initState = params.get("state") || "plaatsen";
+  const initView = params.get("view") || (window.innerWidth <= 480 ? "phone" : "both");
+  const capture = params.get("capture") === "1";
+
+  setViewMode(initView, capture);
+  renderState(initState);
+  window.addEventListener("resize", layoutSizes);
+})();
+</script>
+</body>
+</html>

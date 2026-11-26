@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tune Timeline — mockups</title>
+<style>
+:root{
+  --nacht:#120E24; --pruim:#1E1838; --pruim2:#2A2350; --schemer:#3A3266;
+  --creme:#F6F1E7; --gedempt:#A99FC9; --papier:#F4EBDD; --inkt:#1A1530;
+  --amber:#FFB23F; --mint:#34E08F; --rood:#FF4D5E; --violet:#7A5CFF;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0A0816;color:var(--creme);font-family:var(--font)}
+body{min-height:100vh}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- pagina-chrome ---------- */
+.page{padding:24px 28px 60px;max-width:1800px;margin:0 auto}
+.page h1{font-size:26px;font-weight:800;letter-spacing:.02em;display:flex;align-items:center;gap:14px}
+.page h1 small{font-size:14px;font-weight:500;color:var(--gedempt);letter-spacing:0}
+.page h2{font-size:20px;font-weight:800;margin:44px 0 6px}
+.page p.lead{color:var(--gedempt);font-size:14px;margin:6px 0 16px;max-width:1100px;line-height:1.5}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 8px;align-items:center}
+.controls .lbl{font-size:13px;color:var(--gedempt);margin-right:4px;font-weight:600}
+.controls button{background:var(--pruim);color:var(--creme);border:1px solid var(--schemer);border-radius:999px;padding:8px 14px;font:600 14px var(--font);cursor:pointer}
+.controls button:hover{border-color:var(--gedempt)}
+.controls button.on{background:var(--amber);color:var(--inkt);border-color:var(--amber)}
+.controls select{background:var(--pruim);color:var(--creme);border:1px solid var(--schemer);border-radius:8px;padding:7px 10px;font:600 14px var(--font)}
+.stateinfo{font-size:14px;color:var(--gedempt);margin:4px 0 16px;min-height:20px}
+.stateinfo b{color:var(--creme)}
+.duo{display:flex;gap:28px;align-items:flex-start}
+.tvwrap{flex:1;min-width:0}
+.tvframe{position:relative;width:100%;background:#000;border-radius:14px;padding:10px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.tvscaler{position:relative;overflow:hidden;border-radius:6px}
+.cap{font-size:12px;color:var(--gedempt);margin-top:8px;text-align:center}
+.phonewrap{flex:0 0 auto}
+.phoneframe{width:414px;height:868px;border-radius:52px;background:#05040a;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 0 2px #2b2640}
+
+/* ---------- TV ---------- */
+.tv{width:1920px;height:1080px;background:radial-gradient(1200px 700px at 50% 45%,#1d1640 0%,var(--nacht) 70%);position:relative;overflow:hidden;transform-origin:0 0;font-family:var(--font)}
+.tv .topbar{position:absolute;left:0;right:0;top:0;height:180px;display:flex;justify-content:center;gap:8px;padding:30px 4px 0}
+.chip{width:184px;height:132px;background:var(--pruim);border-radius:18px;border:3px solid transparent;padding:10px 10px 10px;position:relative;display:flex;flex-direction:column;justify-content:space-between;transition:transform .3s}
+.tv:not(.tv10) .chip{width:240px}
+.chip.active{border-color:var(--amber);transform:translateY(-8px);box-shadow:0 10px 30px rgba(255,178,63,.25)}
+.chip.off{opacity:.45}
+.chip .row1{display:flex;align-items:center;gap:8px}
+.chip .av{width:44px;height:44px;font-size:24px}
+.av{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:28px;color:var(--inkt);flex:0 0 auto}
+.chip .nm{font-size:26px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip .row2{display:flex;align-items:flex-end;justify-content:space-between}
+.chip .cnt{font-size:38px;font-weight:800;line-height:1}
+.chip .cnt small{font-size:24px;color:var(--gedempt);font-weight:700}
+.coins{display:flex;gap:4px;padding-bottom:4px}
+.tokc{display:flex;align-items:center;gap:6px;font-size:30px;font-weight:800;padding-bottom:2px}
+.tokc .coin{width:24px;height:24px}
+.coin{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd88a,var(--amber) 60%,#c9801a);box-shadow:inset 0 0 0 2px rgba(0,0,0,.15)}
+.coin.empty{background:transparent;box-shadow:inset 0 0 0 2px var(--schemer)}
+.pips{position:absolute;left:12px;right:12px;bottom:-14px;display:flex;gap:3px}
+.pips i{flex:1;height:6px;border-radius:3px;background:var(--schemer)}
+.chip .flag{position:absolute;top:-16px;right:10px;background:var(--amber);color:var(--inkt);font-size:16px;font-weight:800;padding:3px 10px;border-radius:999px}
+.chip .flag.mp{background:var(--rood);color:#fff}
+.chip .emo{position:absolute;top:-26px;right:-8px;font-size:38px;animation:floatup 2s ease-out infinite}
+@keyframes floatup{0%{opacity:0;transform:translateY(10px)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+
+.tv .phase{position:absolute;left:0;right:0;top:200px;text-align:center}
+.tv .phase .big{font-size:84px;font-weight:800;letter-spacing:.01em;line-height:1}
+.tv .phase .sub{font-size:34px;color:var(--gedempt);margin-top:14px;font-weight:600}
+.tv .tl{position:absolute;left:0;right:0;top:470px;height:380px;display:flex;justify-content:center;align-items:center;gap:0}
+.gap{width:56px;height:260px;display:flex;align-items:center;justify-content:center;position:relative}
+.gap.steal{width:110px}
+.gap.steal::before{content:"";position:absolute;inset:20px 14px;border:3px dashed rgba(122,92,255,.75);border-radius:12px}
+.gap.taken::before{border-style:solid;border-color:rgba(122,92,255,.9);background:rgba(122,92,255,.12)}
+.gap .tok{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2}
+.gap .tok .av{width:50px;height:50px;font-size:24px;box-shadow:0 0 0 4px var(--violet)}
+.gap .tok span{font-size:22px;font-weight:700;background:var(--violet);padding:2px 8px;border-radius:8px}
+
+/* kaart (tv) */
+.card{width:200px;height:266px;background:var(--papier);color:var(--inkt);border-radius:14px;position:relative;box-shadow:0 12px 30px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;flex:0 0 auto;overflow:visible}
+.card .band{width:100%;height:48px;border-radius:14px 14px 0 0;background:var(--band);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:rgba(0,0,0,.55);letter-spacing:.08em}
+.card::before,.card::after{content:"";position:absolute;top:118px;width:22px;height:22px;border-radius:50%;background:var(--nacht)}
+.card::before{left:-11px}.card::after{right:-11px}
+.card .year{font-size:68px;font-weight:800;margin-top:14px;line-height:1;font-variant-numeric:tabular-nums}
+.card .ti{font-size:22px;font-weight:700;margin-top:18px;padding:0 14px;text-align:center;line-height:1.15;max-height:52px;overflow:hidden}
+.card .ar{font-size:20px;color:#5b5378;margin-top:6px;padding:0 14px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.card.sm{width:150px;height:200px}
+.card.sm .band{height:38px;font-size:16px}
+.card.sm::before,.card.sm::after{top:88px;width:18px;height:18px}
+.card.sm::before{left:-9px}.card.sm::after{right:-9px}
+.card.sm .year{font-size:50px;margin-top:12px}
+.card.sm .ti{font-size:18px;margin-top:12px;max-height:42px}
+.card.sm .ar{font-size:16px}
+.card.good{box-shadow:0 0 0 5px var(--mint),0 0 50px rgba(52,224,143,.6)}
+.card.bad{box-shadow:0 0 0 5px var(--rood),0 0 50px rgba(255,77,94,.5)}
+.card.bad .strike{position:absolute;inset:0;background:linear-gradient(135deg,transparent 48.5%,var(--rood) 48.5%,var(--rood) 51.5%,transparent 51.5%);border-radius:14px;opacity:.45}
+.card.mystery{background:var(--pruim2);color:var(--creme);box-shadow:0 0 0 4px var(--violet),0 0 0 8px rgba(255,178,63,.55),0 16px 40px rgba(0,0,0,.6);animation:pulse 1.6s ease-in-out infinite;justify-content:center}
+.card.mystery::before,.card.mystery::after{background:var(--nacht)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px var(--violet),0 0 0 8px rgba(255,178,63,.35),0 16px 40px rgba(0,0,0,.6)}50%{box-shadow:0 0 0 4px var(--amber),0 0 0 12px rgba(122,92,255,.45),0 16px 40px rgba(0,0,0,.6)}}
+.eq{display:flex;gap:8px;align-items:flex-end;height:70px}
+.eq i{width:14px;background:linear-gradient(var(--amber),var(--violet));border-radius:4px;animation:eq .9s ease-in-out infinite}
+.eq i:nth-child(2){animation-delay:-.3s}.eq i:nth-child(3){animation-delay:-.6s}.eq i:nth-child(4){animation-delay:-.15s}.eq i:nth-child(5){animation-delay:-.45s}
+@keyframes eq{0%,100%{height:18px}50%{height:70px}}
+.card.mystery .q{font-size:76px;font-weight:800;margin-top:6px;line-height:1}
+.card.lift{transform:translateY(-40px)}
+.arrow{position:absolute;top:-62px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:800;color:var(--inkt);background:var(--amber);padding:6px 14px;border-radius:999px;white-space:nowrap}
+.arrow::after{content:"";position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);border:10px solid transparent;border-top-color:var(--amber);border-bottom:0}
+.stamp{position:absolute;top:96px;left:50%;transform:translateX(-50%) rotate(-8deg);font-size:30px;font-weight:900;color:var(--amber);border:4px solid var(--amber);padding:2px 12px;border-radius:8px;background:rgba(18,14,36,.85);letter-spacing:.06em;white-space:nowrap}
+
+/* flip */
+.flipwrap{perspective:1200px;width:200px;height:266px;flex:0 0 auto;position:relative}
+.flipper{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:flip .7s cubic-bezier(.2,.8,.2,1) .3s both}
+.flipper > .card{position:absolute;inset:0;backface-visibility:hidden}
+.flipper > .back{transform:rotateY(180deg)}
+@keyframes flip{0%{transform:rotateY(0) scale(1)}50%{transform:rotateY(90deg) scale(1.12)}100%{transform:rotateY(180deg) scale(1)}}
+
+.tv .bottombar{position:absolute;left:40px;right:40px;bottom:28px;height:110px;display:flex;align-items:center;gap:36px}
+.tv .ph{font-size:34px;font-weight:800;white-space:nowrap}
+.tv .ph small{display:block;font-size:24px;font-weight:600;color:var(--gedempt)}
+.timer{flex:1;height:18px;background:var(--pruim2);border-radius:9px;overflow:hidden}
+.timer i{display:block;height:100%;border-radius:9px;background:var(--amber)}
+.timer.v i{background:var(--violet)}
+.room{display:flex;align-items:center;gap:16px}
+.room .code{text-align:right;font-size:24px;color:var(--gedempt);font-weight:600;line-height:1.25}
+.room .code b{display:block;font-size:40px;color:var(--creme);letter-spacing:.12em}
+.qr{background:var(--papier);border-radius:10px;padding:8px;display:grid;gap:0}
+.qr i{background:var(--inkt)}
+.qr i.o{background:transparent}
+.ring{position:absolute;right:70px;top:210px;width:170px;height:170px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .t{position:absolute;inset:0;display:grid;place-items:center;font-size:60px;font-weight:800}
+.glow-v{position:absolute;inset:0;box-shadow:inset 0 0 120px 20px rgba(122,92,255,.55);pointer-events:none;animation:vg 1.2s ease-in-out infinite}
+@keyframes vg{50%{box-shadow:inset 0 0 160px 30px rgba(122,92,255,.7)}}
+.banner{position:absolute;left:50%;transform:translateX(-50%);top:880px;font-size:30px;font-weight:700;color:var(--gedempt);white-space:nowrap}
+.banner b{color:var(--creme)}
+.result{font-size:96px;font-weight:900;letter-spacing:.02em}
+.plus{position:absolute;font-size:34px;font-weight:900;color:var(--mint);top:126px}
+.fly{position:absolute;animation:fly 1.2s cubic-bezier(.4,.0,.2,1) .6s both}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:.0}}
+
+/* lobby */
+.lobby{position:absolute;inset:0;display:flex;padding:70px 90px 60px;gap:90px}
+.lobby .left{width:600px;display:flex;flex-direction:column;align-items:center}
+.logo{display:flex;align-items:center;gap:22px;font-size:54px;font-weight:900;letter-spacing:.06em}
+.logo svg{flex:0 0 auto}
+.lobby .qrbig{margin-top:44px;background:var(--papier);padding:26px;border-radius:24px}
+.lobby .url{font-size:32px;color:var(--gedempt);margin-top:28px;font-weight:600}
+.lobby .url b{color:var(--creme)}
+.lobby .bigcode{font-size:108px;font-weight:900;letter-spacing:.18em;margin-top:6px;color:var(--amber)}
+.lobby .right{flex:1;position:relative}
+.seats{display:grid;grid-template-columns:repeat(5,190px);gap:22px;justify-content:center;margin-top:150px}
+.seat{position:relative;width:190px;height:96px;border-radius:18px;border:3px dashed var(--schemer);display:flex;align-items:center;gap:12px;padding:0 14px;font-size:28px;font-weight:700;color:var(--gedempt)}
+.seat.f{border:3px solid transparent;background:var(--pruim);color:var(--creme)}
+.seat .av{width:52px;height:52px;font-size:26px}
+.seatshead{text-align:center;margin-top:60px}
+.seatshead .n{font-size:110px;font-weight:900;line-height:1}
+.seatshead .s{font-size:30px;color:var(--gedempt);font-weight:600}
+.settings{position:absolute;left:0;right:0;bottom:0;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.pill{background:var(--pruim);border-radius:999px;padding:12px 24px;font-size:28px;font-weight:700}
+.pill.est{background:transparent;border:2px solid var(--schemer);color:var(--gedempt);font-weight:600}
+
+/* tussenstand */
+.stand{position:absolute;left:260px;right:260px;top:300px}
+.srow{display:flex;align-items:center;gap:20px;margin-bottom:26px;font-size:36px;font-weight:700}
+.srow .pos{width:50px;color:var(--gedempt);text-align:right}
+.srow .nm{width:200px}
+.srow .bar{flex:1;height:44px;background:var(--pruim);border-radius:12px;overflow:hidden}
+.srow .bar i{display:block;height:100%;border-radius:12px}
+.srow .v{width:110px;text-align:right}
+
+/* winnaar */
+.tv.win{background:radial-gradient(1200px 800px at 50% 40%,#ffcd73 0%,var(--amber) 45%,#b56a0f 100%)}
+.confetti i{position:absolute;top:-30px;width:16px;height:26px;border-radius:3px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(1150px) rotate(720deg)}}
+.win .wtitle{position:absolute;top:230px;left:0;right:0;text-align:center;color:var(--inkt)}
+.win .wtitle .crown{font-size:90px;line-height:1}
+.win .wtitle .who{font-size:160px;font-weight:900;line-height:1.05}
+.win .wtitle .s{font-size:44px;font-weight:700;opacity:.8}
+.win .wtl{position:absolute;top:640px;left:0;right:0;display:flex;justify-content:center;gap:14px}
+.win .wtl .card{width:150px;height:200px}
+.awards{position:absolute;left:0;right:0;bottom:46px;display:flex;justify-content:center;gap:18px}
+.award{background:rgba(26,21,48,.92);border-radius:18px;padding:16px 26px;font-size:26px;font-weight:600;color:var(--gedempt)}
+.award b{display:block;color:var(--creme);font-size:30px}
+
+/* foutoverlay */
+.overlay{position:absolute;inset:0;background:rgba(10,8,22,.6);display:grid;place-items:center}
+.ocard{background:var(--pruim);border-radius:26px;padding:50px 70px;text-align:center;border:3px solid var(--schemer);width:1000px}
+.ocard .ic{font-size:80px}
+.ocard h3{font-size:56px;font-weight:800;margin-top:10px}
+.ocard p{font-size:32px;color:var(--gedempt);margin-top:16px;line-height:1.35}
+.ocard .btns{display:flex;gap:20px;justify-content:center;margin-top:36px}
+.btn-tv{font-size:30px;font-weight:800;padding:18px 34px;border-radius:16px;background:var(--amber);color:var(--inkt)}
+.btn-tv.sec{background:transparent;color:var(--creme);border:3px solid var(--schemer)}
+.strip{position:absolute;top:0;left:0;right:0;height:64px;background:#FFD23F;color:var(--inkt);font-size:30px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:14px}
+
+/* ---------- TELEFOON ---------- */
+.phone{width:390px;height:844px;border-radius:40px;overflow:hidden;background:var(--nacht);position:relative;font-family:var(--font);display:flex;flex-direction:column}
+.ptop{height:56px;flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--pruim);margin-top:0}
+.status{height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 28px;font-size:15px;font-weight:700}
+.ptop .av{width:36px;height:36px;font-size:18px}
+.ptop .nm{font-size:17px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptop .cnt{font-size:17px;font-weight:800}
+.ptop .coins .coin{width:16px;height:16px}
+.ptop .gear{font-size:20px;width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:var(--pruim2)}
+.pbody{flex:1;overflow:hidden;padding:14px 16px 0;position:relative}
+.pact{flex:0 0 auto;padding:12px 16px 26px;display:flex;gap:10px;background:linear-gradient(transparent,var(--nacht) 30%)}
+.pbtn{height:64px;border-radius:18px;border:0;font:800 19px var(--font);display:flex;align-items:center;justify-content:center;gap:8px;flex:1;color:var(--inkt);background:var(--amber)}
+.pbtn.sec{background:var(--pruim2);color:var(--creme);flex:0 0 40%}
+.pbtn.dis{background:var(--pruim2);color:#6d6590}
+.pbtn.v{background:var(--violet);color:#fff}
+.pbtn.r{background:var(--rood);color:#fff}
+.ph1{font-size:24px;font-weight:800;line-height:1.15}
+.pbody > .ph1:first-child,.pbody > .ph1:first-child + .ph2{padding-right:0}
+.hasring .ph1,.hasring .ph2{padding-right:64px}
+.ph2{font-size:17px;color:var(--gedempt);margin-top:4px;line-height:1.35}
+.ptl{margin-top:12px;display:flex;flex-direction:column}
+.pcard{height:64px;border-radius:12px;background:var(--papier);color:var(--inkt);display:flex;align-items:center;gap:12px;padding-right:12px;overflow:hidden;flex:0 0 auto}
+.pcard .b{width:14px;align-self:stretch;background:var(--band)}
+.pcard .y{font-size:28px;font-weight:800;width:72px;font-variant-numeric:tabular-nums}
+.pcard .t{flex:1;min-width:0}
+.pcard .t b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .t span{display:block;font-size:15px;color:#5b5378;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard.mys{background:var(--pruim2);color:var(--creme);box-shadow:0 0 0 3px var(--amber);justify-content:center;gap:14px;font-size:18px;font-weight:800}
+.pcard.mys .eq{height:30px;gap:4px}.pcard.mys .eq i{width:6px}
+@keyframes eqs{0%,100%{height:8px}50%{height:30px}}
+.pcard.mys .eq i{animation-name:eqs}
+.pcard.good{box-shadow:0 0 0 3px var(--mint)}
+.pgap{height:48px;flex:0 0 auto;margin:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--gedempt);position:relative}
+.pgap::before{content:"";position:absolute;left:24px;right:24px;top:8px;bottom:8px;border:2px dashed var(--schemer);border-radius:10px}
+.pgap span{position:relative}
+.pgap.v::before{border-color:var(--violet);background:rgba(122,92,255,.1)}
+.pgap.v{color:#c9bcff}
+.pgap.sel::before{border:3px solid var(--violet);background:rgba(122,92,255,.3)}
+.pgap.sel{color:#fff}
+.pgap.own::before{border:2px solid var(--amber);background:rgba(255,178,63,.12)}
+.pgap.own{color:var(--amber)}
+.pgap.taken::before{border:2px solid #5a5280;background:rgba(255,255,255,.04)}
+.pgap.guess::before{border:2px dashed #FFD23F;background:rgba(255,210,63,.1)}
+.pgap.guess{color:#FFD23F}
+.toggle{display:flex;align-items:center;justify-content:space-between;background:var(--pruim);border-radius:14px;padding:10px 14px;font-size:16px;font-weight:700;margin:0 16px}
+.sw{width:52px;height:32px;border-radius:16px;background:var(--mint);position:relative;flex:0 0 auto}
+.sw::after{content:"";position:absolute;right:3px;top:3px;width:26px;height:26px;border-radius:50%;background:#fff}
+.sw.off{background:var(--schemer)}.sw.off::after{right:auto;left:3px}
+.pring{position:absolute;right:16px;top:12px;width:54px;height:54px}
+.pring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.pring b{position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:800}
+.full{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--pruim);border-radius:24px 24px 0 0;padding:16px 16px 26px;box-shadow:0 -20px 40px rgba(0,0,0,.5)}
+.sheet .grab{width:44px;height:5px;border-radius:3px;background:var(--schemer);margin:0 auto 14px}
+.toast{position:absolute;left:16px;right:16px;bottom:110px;background:#2d2650;border-radius:14px;padding:12px 16px;font-size:16px;font-weight:700;border-left:5px solid var(--rood)}
+.react{display:flex;gap:10px;justify-content:space-between;margin-top:10px}
+.react span{flex:1;height:56px;border-radius:14px;background:var(--pruim);display:grid;place-items:center;font-size:28px}
+.codeboxes{display:flex;gap:10px;justify-content:center;margin-top:24px}
+.codeboxes span{width:64px;height:80px;border-radius:14px;background:var(--pruim);border:2px solid var(--schemer);display:grid;place-items:center;font-size:40px;font-weight:900}
+.input{height:60px;border-radius:14px;background:var(--pruim);border:2px solid var(--amber);display:flex;align-items:center;padding:0 16px;font-size:22px;font-weight:700;margin-top:10px}
+.colors{display:grid;grid-template-columns:repeat(5,56px);gap:14px;justify-content:center;margin-top:14px}
+.colors i{width:56px;height:56px;border-radius:50%;position:relative}
+.colors i.sel{box-shadow:0 0 0 4px var(--nacht),0 0 0 7px var(--creme)}
+.colors i.x::after{content:"";position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,transparent 45%,rgba(18,14,36,.9) 45%,rgba(18,14,36,.9) 55%,transparent 55%);opacity:.9}
+.colors i.x{opacity:.45}
+.list{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.li{display:flex;align-items:center;gap:12px;background:var(--pruim);border-radius:14px;padding:10px 12px;font-size:17px;font-weight:700}
+.li .av{width:36px;height:36px;font-size:18px}
+.li .r{margin-left:auto;color:var(--gedempt);font-weight:600;font-size:15px}
+.hit{width:100%;height:120px;border-radius:26px;background:var(--violet);color:#fff;font-size:40px;font-weight:900;letter-spacing:.04em;display:grid;place-items:center;box-shadow:0 0 0 6px rgba(122,92,255,.35),0 12px 30px rgba(122,92,255,.45)}
+.pbar{height:10px;border-radius:5px;background:var(--pruim2);overflow:hidden;margin-top:12px}
+.pbar i{display:block;height:100%;background:var(--violet)}
+.netbar{height:36px;flex:0 0 auto;background:var(--rood);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+/* overzicht tv 10 spelers */
+.tv10 .topbar .chip{width:184px}
+.tv10 .tl{gap:0}
+.tv10 .tl .gap{width:24px}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.sw2{display:flex;align-items:center;gap:8px;background:var(--pruim);border-radius:10px;padding:6px 10px;font-size:13px}
+.sw2 i{width:22px;height:22px;border-radius:6px;display:block}
+@media (max-width:1300px){.duo{flex-direction:column}.phonewrap{align-self:center}}
+body.only{background:var(--nacht)}
+body.only .page{display:none}
+</style>
+</head>
+<body>
+<div class="page" id="page">
+  <h1>
+    <svg width="64" height="30" viewBox="0 0 64 30" aria-hidden="true"><path d="M2 15 H22 Q27 3 32 15 Q37 27 42 15 H62" stroke="#F6F1E7" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="2" cy="15" r="3" fill="#F6F1E7"/><circle cx="14" cy="15" r="3" fill="#F6F1E7"/><circle cx="32" cy="15" r="6" fill="#FFB23F"/><circle cx="50" cy="15" r="3" fill="#F6F1E7"/><circle cx="62" cy="15" r="3" fill="#F6F1E7"/></svg>
+    TUNE·TIMELINE <small>mockups: tv (16:9) en telefoon, één voorbeeldbeurt met 4 spelers</small>
+  </h1>
+  <p class="lead">Klik door de toestanden. Het tv-scherm is ontworpen op 1920×1080 en hier verkleind weergegeven; de telefoon staat op ware grootte (390×844). Voorbeeldbeurt: <b>Daan</b> is aan de beurt, legt het nummer tussen 1985 en 1991 (fout), <b>Mila</b> steelt goed tussen 1967 en 1985, <b>Sanne</b> steelt mis. Kaarten zijn kleurvlakken met tekst; er zijn bewust geen albumhoezen of merkbeelden gebruikt.</p>
+
+  <div class="controls" id="stateBtns"><span class="lbl">Toestand:</span></div>
+  <div class="controls"><span class="lbl">Telefoon van:</span><select id="phoneSel"></select>
+    <span class="lbl" style="margin-left:14px">Volledig formaat openen:</span>
+    <button id="openTv">TV 1920×1080</button><button id="openPhone">Telefoon 390×844</button>
+  </div>
+  <div class="stateinfo" id="info"></div>
+
+  <div class="duo">
+    <div class="tvwrap"><div class="tvframe"><div class="tvscaler" id="tvScaler"><div id="tvHost"></div></div></div><div class="cap">TV — pc aan de tv, 3 meter kijkafstand</div></div>
+    <div class="phonewrap"><div class="phoneframe"><div id="phoneHost"></div></div><div class="cap" id="phoneCap">Telefoon</div></div>
+  </div>
+
+  <h2>Overzicht: de tv met 10 spelers</h2>
+  <p class="lead">Fleur is aan de beurt en staat op <b>match point</b> (9 van 10). Daan heeft zijn verbinding verloren (bordje half doorzichtig). Bram stuurt een reactie. De tijdlijn met 9 kaarten + raadselkaart schaalt naar kleinere kaarten; het jaartal blijft minimaal 48 px.</p>
+  <div class="tvframe"><div class="tvscaler" id="tv10Scaler"><div id="tv10Host"></div></div></div>
+
+  <h2>Kleuren en vormen</h2>
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const DEC = {50:'#9A8C7A',60:'#E9A23B',70:'#D9653B',80:'#E0457B',90:'#7A5CFF',0:'#2FA7E0',10:'#20BFA0',20:'#8BCF3F'};
+function band(y){ if(y<1960) return [DEC[50],'≤50s']; if(y<1970) return [DEC[60],'60s']; if(y<1980) return [DEC[70],'70s']; if(y<1990) return [DEC[80],'80s']; if(y<2000) return [DEC[90],'90s']; if(y<2010) return [DEC[0],'00s']; if(y<2020) return [DEC[10],'10s']; return [DEC[20],'20s']; }
+const PC = {zon:'#FFD23F',mandarijn:'#FF8C42',framboos:'#FF4F8B',orchidee:'#E07BFF',kobalt:'#4D7CFF',hemel:'#3BC9F5',turkoois:'#2ED3B7',limoen:'#A6E35A',zalm:'#FFAD9E',zilver:'#C9CED8'};
+const P4 = [
+  {n:'Daan',c:PC.kobalt,k:4,t:2},
+  {n:'Mila',c:PC.framboos,k:5,t:2},
+  {n:'Sanne',c:PC.turkoois,k:3,t:1},
+  {n:'Josse',c:PC.zon,k:4,t:3}
+];
+const DAAN = [
+  {y:1967,t:'Waterloo Sunset',a:'The Kinks'},
+  {y:1985,t:'Take On Me',a:'a-ha'},
+  {y:1991,t:'Smells Like Teen Spirit',a:'Nirvana'},
+  {y:2004,t:'Mr. Brightside',a:'The Killers'}
+];
+const MILA = [
+  {y:1972,t:'Lean On Me',a:'Bill Withers'},
+  {y:1983,t:'Billie Jean',a:'Michael Jackson'},
+  {y:1997,t:'Bitter Sweet Symphony',a:'The Verve'},
+  {y:2008,t:'Viva la Vida',a:'Coldplay'},
+  {y:2019,t:'Bad Guy',a:'Billie Eilish'}
+];
+const SONG = {y:1979,t:'Video Killed the Radio Star',a:'The Buggles'};
+
+/* ---------------- helpers ---------------- */
+const av = (p,s='') => `<div class="av" style="background:${p.c};${s}">${p.n[0]}</div>`;
+const coins = (n,max=5,empty=true) => `<div class="coins">${Array.from({length:empty?max:n},(_,i)=>`<i class="coin ${i<n?'':'empty'}"></i>`).join('')}</div>`;
+function chip(p,o={}){
+  const goal=o.goal||10;
+  return `<div class="chip ${o.active?'active':''} ${o.off?'off':''}">
+    ${o.flag?`<div class="flag ${o.mp?'mp':''}">${o.flag}</div>`:''}
+    ${o.emo?`<div class="emo">${o.emo}</div>`:''}
+    <div class="row1">${av(p)}<div class="nm">${p.n}${o.off?' <span style="font-size:20px">📶✕</span>':''}</div></div>
+    <div class="row2"><div class="cnt num">${p.k}<small>/${goal}</small></div><div class="tokc num"><i class="coin"></i>${p.t}</div></div>
+    <div class="pips">${Array.from({length:goal},(_,i)=>`<i style="${i<p.k?`background:${p.c}`:''}"></i>`).join('')}</div>
+  </div>`;
+}
+function card(c,cls=''){ const [b,l]=band(c.y); return `<div class="card ${cls}" style="--band:${b}"><div class="band">${l}</div><div class="year">${c.y}</div><div class="ti">${c.t}</div><div class="ar">${c.a}</div>${cls.includes('bad')?'<div class="strike"></div>':''}</div>`; }
+const mystery = (extra='',cls='') => `<div class="card mystery ${cls}" style="position:relative">${extra}<div class="eq"><i></i><i></i><i></i><i></i><i></i></div><div class="q">?</div></div>`;
+function qr(size=120,cells=21,seed=7){
+  let s=seed, out=''; const px=Math.floor((size-16)/cells);
+  const rnd=()=> (s=(s*9301+49297)%233280)/233280;
+  const finder=(r,c)=>{ for(const [R,C] of [[0,0],[0,cells-7],[cells-7,0]]){ if(r>=R&&r<R+7&&c>=C&&c<C+7){ const rr=r-R,cc=c-C; return (rr==0||rr==6||cc==0||cc==6||(rr>=2&&rr<=4&&cc>=2&&cc<=4)); } } return null; };
+  for(let r=0;r<cells;r++)for(let c=0;c<cells;c++){ const f=finder(r,c); const on = f===null ? rnd()>.52 : f; out+=`<i class="${on?'':'o'}"></i>`; }
+  return `<div class="qr" style="grid-template-columns:repeat(${cells},${px}px);grid-auto-rows:${px}px">${out}</div>`;
+}
+function ring(sec,total,color='var(--amber)',size=170,stroke=14){
+  const r=(size-stroke)/2, C=2*Math.PI*r, f=sec/total;
+  return `<svg viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="#2A2350" stroke-width="${stroke}" fill="none"/><circle cx="${size/2}" cy="${size/2}" r="${r}" stroke="${color}" stroke-width="${stroke}" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-f)}"/></svg>`;
+}
+function topbar(players,activeIdx,o={}){ return `<div class="topbar">${players.map((p,i)=>chip(p,Object.assign({active:i===activeIdx},(o.per||{})[i]||{},{goal:o.goal}))).join('')}</div>`; }
+function bottombar(ph,sub,frac,violet){ return `<div class="bottombar"><div class="ph">${ph}<small>${sub}</small></div><div class="timer ${violet?'v':''}"><i style="width:${frac*100}%"></i></div><div class="room"><div class="code">Instappen?<b>KWPX</b></div>${qr(120)}</div></div>`; }
+
+/* tijdlijn-bouwer (tv) */
+function tvTimeline(cards, opts={}){
+  // opts.insertAt: index waar raadselkaart staat; opts.mystery: html; opts.stealGaps: {gapIndex: player}; opts.stealable:true
+  let h='';
+  const n=cards.length;
+  for(let g=0; g<=n; g++){
+    // gap g ligt vóór kaart g
+    if(opts.insertAt===g){ h+=`<div class="gap"></div>${opts.mystery}`; }
+    const st = opts.stealable && opts.insertAt!==g;
+    const tk = opts.stealGaps && opts.stealGaps[g];
+    h+=`<div class="gap ${st?'steal':''} ${tk?'taken':''}">${tk?`<div class="tok">${av(tk)}<span>${tk.n}</span></div>`:''}</div>`;
+    if(g<n) h+= opts.cardHtml ? opts.cardHtml(cards[g],g) : card(cards[g], opts.small?'sm':'');
+  }
+  return `<div class="tl">${h}</div>`;
+}
+
+/* ---------------- TV-toestanden ---------------- */
+const TV = {};
+TV.lobby = () => `
+  <div class="lobby">
+    <div class="left">
+      <div class="logo"><svg width="120" height="56" viewBox="0 0 64 30"><path d="M2 15 H22 Q27 3 32 15 Q37 27 42 15 H62" stroke="#F6F1E7" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="2" cy="15" r="3" fill="#F6F1E7"/><circle cx="14" cy="15" r="3" fill="#F6F1E7"/><circle cx="32" cy="15" r="6" fill="#FFB23F"/><circle cx="50" cy="15" r="3" fill="#F6F1E7"/><circle cx="62" cy="15" r="3" fill="#F6F1E7"/></svg>TUNE·TIMELINE</div>
+      <div class="qrbig">${qr(380,25,3)}</div>
+      <div class="url">Scan of ga naar <b>tunetimeline.vercel.app</b></div>
+      <div class="bigcode">KWPX</div>
+    </div>
+    <div class="right">
+      <div class="seatshead"><div class="n num">4</div><div class="s">van max 10 spelers · in speelvolgorde</div></div><div class="seats" style="margin-top:60px">${seats()}</div>
+      <div class="settings"><div class="pill">Original</div><div class="pill">Doel: 10 kaarten</div><div class="pill">Plaatsen: 60 s</div><div class="pill est">Geschatte speelduur ±40 min</div></div>
+    </div>
+  </div>`;
+function seats(){
+  return Array.from({length:10},(_,i)=>{ const pl=P4[i]; return `<div class="seat ${pl?'f':''}"><span style="position:absolute;top:-14px;left:12px;font-size:20px;background:var(--nacht);padding:0 6px;color:var(--gedempt)">${i+1}</span>${pl?av(pl)+pl.n:'<span style="font-size:24px">vrij</span>'}</div>`; }).join('');
+}
+TV.beurtstart = () => `
+  ${topbar(P4,0)}
+  <div class="phase"><div class="big" style="color:${PC.kobalt};font-size:110px">Daan</div><div class="sub" style="font-size:44px;color:var(--creme)">is aan de beurt</div></div>
+  ${tvTimeline(DAAN)}
+  <div class="banner">Daan kan nu een kaart <b>kopen</b> (3 tokens) · muziek start over <b class="num">3</b></div>
+  ${bottombar('Beurtstart','kopen kan nu',.75)}`;
+TV.speelt = () => `
+  ${topbar(P4,0,{per:{3:{emo:'🎶'}}})}
+  <div class="phase"><div class="big">Luister…</div><div class="sub">Daan kiest een plek in zijn tijdlijn</div></div>
+  <div class="ring">${ring(54,60)}<div class="t num">54</div></div>
+  ${tvTimeline(DAAN,{insertAt:-1})}
+  <div style="position:absolute;left:50%;top:360px;transform:translateX(-50%)">${mystery()}</div>
+  <div class="banner" style="top:900px">Meegokkers: <b>2</b></div>
+  ${bottombar('Luisteren & plaatsen','nummer 23 van 300',54/60)}`;
+TV.plaatsen = () => `
+  ${topbar(P4,0,{per:{1:{emo:'😱'}}})}
+  <div class="phase"><div class="big">Luister…</div><div class="sub">Daan schuift de kaart live heen en weer</div></div>
+  <div class="ring">${ring(23,60)}<div class="t num">23</div></div>
+  ${tvTimeline(DAAN,{insertAt:2,mystery:mystery('<div class="arrow">Daan legt hier</div>','lift')})}
+  <div class="banner">Tussen <b>1985</b> en <b>1991</b>? · Meegokkers: <b>3</b> · titel + artiest geclaimd 🎤</div>
+  ${bottombar('Luisteren & plaatsen','nummer 23 van 300',23/60)}`;
+TV.steal = () => `
+  <div class="glow-v"></div>
+  ${topbar(P4,0)}
+  <div class="phase"><div class="big" style="color:#b9a8ff;font-size:96px">HITSTER?</div><div class="sub">Denk je dat Daan het fout heeft? Steel met 1 token!</div></div>
+  <div class="ring">${ring(6,10,'var(--violet)')}<div class="t num">6</div></div>
+  ${tvTimeline(DAAN,{insertAt:2,stealable:true,mystery:mystery('<div class="stamp">VASTGEZET</div>'),stealGaps:{1:P4[1],4:P4[2]}})}
+  <div class="banner" style="top:900px">Steelpogingen: <b>Mila</b> (1967–1985) · <b>Sanne</b> (na 2004)</div>
+  ${bottombar('HITSTER-venster','wie het eerst tikt, heeft de plek',.6,true)}`;
+TV.onthulling = () => {
+  const flip = `<div class="flipwrap" style="transform:translateY(-10px)"><div class="flipper"><div class="card mystery" style="animation:none"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div><div class="q">?</div></div>${card(SONG,'back bad')}</div></div>`;
+  return `
+  ${topbar(P4,0,{per:{1:{flag:'+1 kaart'},2:{flag:'−1 token'}}})}
+  <div class="phase"><div class="result" style="color:${PC.framboos}">GESTOLEN DOOR MILA!</div><div class="sub">Daan zat mis: dit nummer is uit <b style="color:var(--creme)">1979</b> en hoorde tussen 1967 en 1985</div></div>
+  ${tvTimeline(DAAN,{insertAt:2,mystery:flip,stealGaps:{1:P4[1],4:P4[2]}})}
+  <div class="banner">Meegokkers goed: <b>1 van 3</b> · Sanne verliest haar token</div>
+  ${bottombar('Onthulling','The Buggles — Video Killed the Radio Star',1)}`;
+};
+TV.goed = () => {
+  const flip = `<div class="flipwrap"><div class="flipper"><div class="card mystery" style="animation:none"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div><div class="q">?</div></div>${card(SONG,'back good')}</div></div>`;
+  return `
+  ${topbar([Object.assign({},P4[0],{k:5}),...P4.slice(1)],0,{per:{0:{flag:'+1 kaart'}}})}
+  <div class="phase"><div class="result" style="color:var(--mint)">GOED!</div><div class="sub">Daan houdt de kaart · 5 van 10</div></div>
+  ${tvTimeline(DAAN,{insertAt:1,mystery:flip})}
+  <div class="banner">Meegokkers goed: <b>2 van 3</b> · geen steelpogingen</div>
+  ${bottombar('Onthulling','The Buggles — Video Killed the Radio Star',1)}`;
+};
+TV.bezwaar = () => `
+  ${topbar([Object.assign({},P4[0],{k:5}),...P4.slice(1)],0)}
+  <div class="phase"><div class="big" style="font-size:72px">Had Daan titel + artiest goed?</div><div class="sub">Hij zei: “Video Killed the Radio Star — The Buggles”</div></div>
+  <div style="position:absolute;top:470px;left:0;right:0;display:flex;justify-content:center;gap:60px;align-items:center">
+    ${card(SONG,'good')}
+    <div style="font-size:40px;font-weight:800;line-height:1.5">Bezwaren: <span class="num" style="color:var(--rood)">0</span> van 3<br><span style="font-size:28px;color:var(--gedempt);font-weight:600">2 bezwaren nodig om het af te keuren</span><br><span style="font-size:28px;color:var(--gedempt);font-weight:600">Geen bezwaar = <b style="color:var(--amber)">+1 token</b> voor Daan</span></div>
+  </div>
+  ${bottombar('Bezwaar?','alleen tikken als het fout was',.5)}`;
+TV.tussenstand = () => {
+  const rows=[...P4].map(p=>Object.assign({},p)); rows[1].k=6; rows[0].k=4; rows[2].k=3; rows[3].k=4;
+  rows.sort((a,b)=>b.k-a.k||b.t-a.t);
+  return `
+  ${topbar(P4.map((p,i)=>Object.assign({},p,{k:[4,6,3,4][i]})),-1)}
+  <div class="phase"><div class="big">Tussenstand</div><div class="sub">na 20 nummers · doel 10 kaarten</div></div>
+  <div class="stand">${rows.map((p,i)=>`<div class="srow"><div class="pos num">${i+1}</div>${av(p)}<div class="nm">${p.n}</div><div class="bar"><i style="width:${p.k*10}%;background:${p.c}"></i></div><div class="v num">${p.k}/10</div>${coins(p.t)}</div>`).join('')}</div>
+  ${bottombar('Tussenstand','volgende beurt: Mila',.4)}`;
+};
+TV.winnaar = () => {
+  const cols=Object.values(PC); let conf='';
+  for(let i=0;i<70;i++){ conf+=`<i style="left:${(i*137)%1920}px;background:${cols[i%10]};animation-duration:${2.4+(i%7)*.35}s;animation-delay:-${(i%11)*.3}s"></i>`; }
+  const wl=[{y:1966,t:'Paint It Black',a:'The Rolling Stones'},{y:1972,t:'Lean On Me',a:'Bill Withers'},{y:1979,t:'Video Killed the Radio Star',a:'The Buggles'},{y:1983,t:'Billie Jean',a:'Michael Jackson'},{y:1989,t:'Like a Prayer',a:'Madonna'},{y:1997,t:'Bitter Sweet Symphony',a:'The Verve'},{y:2002,t:'Lose Yourself',a:'Eminem'},{y:2008,t:'Viva la Vida',a:'Coldplay'},{y:2014,t:'Uptown Funk',a:'Mark Ronson ft. Bruno Mars'},{y:2019,t:'Bad Guy',a:'Billie Eilish'}];
+  return `<div class="confetti">${conf}</div>
+  <div class="wtitle"><div class="crown">👑</div><div class="who">Mila wint!</div><div class="s">10 kaarten · 2 tokens over · 3 keer gestolen</div></div>
+  <div class="wtl">${wl.map(c=>card(c,'sm')).join('')}</div>
+  <div class="awards"><div class="award">👂 Beste oor<b>Josse · 14×</b></div><div class="award">🦊 Meesterdief<b>Mila · 3 steals</b></div><div class="award">⏳ Tijdreiziger<b>Sanne · 1958</b></div><div class="award">😬 Bijna!<b>Daan · 1 jaar mis</b></div><div class="award" style="background:var(--inkt);color:var(--amber)">Host: <b>Nog een potje?</b></div></div>`;
+};
+TV.fout = () => `
+  ${topbar(P4,0,{per:{2:{off:true}}})}
+  ${tvTimeline(DAAN,{insertAt:2,mystery:mystery()})}
+  ${bottombar('Luisteren & plaatsen','gepauzeerd',.4)}
+  <div class="overlay"><div class="ocard"><div class="ic">🔌</div><h3>Spotify is even weg</h3><p>Bezig met opnieuw verbinden… poging 3 van 3.<br>Het spel staat stil, er gaat niets verloren.</p><div class="btns"><div class="btn-tv">Opnieuw verbinden</div><div class="btn-tv sec">Gebruik de Spotify-app op deze pc</div></div></div></div>`;
+
+/* ---------------- telefoon ---------------- */
+function phoneShell(p,inner,act='',o={}){
+  return `<div class="phone">
+    <div class="status"><span>21:14</span><span>📶 ▮▮▯ 38%</span></div>
+    ${o.net?`<div class="netbar">Verbinding kwijt, bezig…</div>`:''}
+    <div class="ptop" style="${o.topStyle||''}">${av(p)}<div class="nm">${p.n}</div><div class="cnt num">${p.k}/10</div>${coins(p.t,5,false)}${o.host?'<div class="gear">⚙︎</div>':''}</div>
+    <div class="pbody">${inner}</div>
+    ${act?`<div class="pact">${act}</div>`:''}
+  </div>`;
+}
+function pcard(c,cls=''){ const [b]=band(c.y); return `<div class="pcard ${cls}" style="--band:${b}"><div class="b"></div><div class="y">${c.y}</div><div class="t"><b>${c.t}</b><span>${c.a}</span></div></div>`; }
+const pmys = (txt='Dit nummer') => `<div class="pcard mys"><div class="eq"><i></i><i></i><i></i><i></i><i></i></div>${txt}</div>`;
+function phoneTL(cards,o={}){
+  let h='';
+  for(let g=0; g<=cards.length; g++){
+    if(o.insertAt===g){ h+= o.mys||pmys(); }
+    else{
+      let cls='', label='hier?';
+      if(o.gaps && o.gaps[g]){ cls=o.gaps[g].cls; label=o.gaps[g].label; }
+      h+=`<div class="pgap ${cls}"><span>${label}</span></div>`;
+    }
+    if(g<cards.length) h+=pcard(cards[g]);
+  }
+  return `<div class="ptl">${h}</div>`;
+}
+const DAANP=P4[0], MILAP=P4[1], SANNEP=P4[2], JOSSEP=P4[3];
+const PH = {};
+PH.aanmelden = () => phoneShell({n:'Tune Timeline',c:'#FFB23F',k:0,t:0},`
+  <div style="text-align:center;margin-top:40px"><div class="ph1">Doe mee</div><div class="ph2">Code staat al ingevuld via de QR-code</div></div>
+  <div class="codeboxes"><span>K</span><span>W</span><span>P</span><span>X</span></div>
+  <div class="ph2" style="text-align:center;margin-top:18px">Geen QR? Typ de 4 letters van de tv.</div>`,
+  `<div class="pbtn">Verder</div>`).replace('<div class="cnt num">0/10</div>','');
+PH.naam = () => phoneShell({n:'Josse',c:PC.zon,k:0,t:2},`
+  <div class="ph1" style="margin-top:6px">Hoe heet je?</div>
+  <div class="input">Josse<span style="margin-left:auto;font-size:14px;color:var(--gedempt)">5/10</span></div>
+  <div class="ph1" style="margin-top:22px;font-size:20px">Kies je kleur</div>
+  <div class="colors">${Object.entries(PC).map(([k,v])=>`<i style="background:${v}" class="${k==='zon'?'sel':''} ${['kobalt','framboos','turkoois'].includes(k)?'x':''}"></i>`).join('')}</div>
+  <div class="ph2" style="text-align:center;margin-top:12px">Doorgestreept = al gekozen</div>`,
+  `<div class="pbtn">Ik doe mee</div>`);
+PH.wachten = () => phoneShell(Object.assign({},JOSSEP,{k:0,t:2}),`
+  <div class="ph1">Je zit erin, Josse!</div><div class="ph2">Wacht tot de host start. Je scherm blijft aan.</div>
+  <div class="list">${P4.map(p=>`<div class="li">${av(p)}${p.n}<span class="r">${p===JOSSEP?'jij':'✓'}</span></div>`).join('')}</div>
+  <div class="ph2" style="margin-top:16px">Stuur iets naar de tv:</div>
+  <div class="react"><span>🔥</span><span>😂</span><span>😱</span><span>🎶</span></div>`,'',{host:true});
+PH.beurtstart = () => `<div class="phone" style="background:var(--amber);color:var(--inkt)">
+  <div class="status"><span>21:14</span><span>📶 ▮▮▯ 38%</span></div>
+  <div class="full" style="padding-bottom:160px"><div style="font-size:22px;font-weight:700">📳 trilt 2×</div><div style="font-size:64px;font-weight:900;line-height:1;margin-top:8px">Jij bent!</div><div style="font-size:19px;font-weight:600;margin-top:12px">Muziek start over 3 s.<br>Kopen kan alleen nu, vóór de muziek.</div>
+  <div style="width:100%;height:10px;border-radius:5px;background:rgba(0,0,0,.15);margin-top:22px;overflow:hidden"><i style="display:block;height:100%;width:75%;background:var(--inkt)"></i></div></div>
+  <div class="pact" style="position:absolute;left:0;right:0;bottom:0;background:none;flex-direction:column"><div class="pbtn" style="background:var(--inkt);color:var(--amber);flex:0 0 64px">Start nu ▶</div><div class="pbtn" style="background:rgba(0,0,0,.10);color:rgba(26,21,48,.55);flex:0 0 56px;font-size:17px">Kaart kopen: 3 tokens nodig (je hebt er 2)</div></div></div>`;
+PH.speelt = () => phoneShell(DAANP,`
+  <div class="hasring"><div class="ph1">Waar hoort dit nummer?</div><div class="ph2">Tik een plek. Oud boven, nieuw onder.</div></div>
+  <div class="pring">${ring(54,60,'var(--amber)',54,6)}<b class="num">54</b></div>
+  ${phoneTL(DAAN)}`,
+  `<div class="pbtn sec">Overslaan · 1</div><div class="pbtn dis">Vastzetten</div>`);
+PH.plaatsen = () => phoneShell(DAANP,`
+  <div class="hasring"><div class="ph1">Waar hoort dit nummer?</div><div class="ph2">Tik een andere plek om te wisselen.</div></div>
+  <div class="pring">${ring(23,60,'var(--amber)',54,6)}<b class="num">23</b></div>
+  ${phoneTL(DAAN,{insertAt:2})}
+  <div style="height:12px"></div>`,
+  `<div style="width:100%;display:flex;flex-direction:column;gap:10px"><div class="toggle" style="margin:0">🎤 Ik noem titel + artiest<div class="sw"></div></div><div style="display:flex;gap:10px"><div class="pbtn sec">Overslaan · 1</div><div class="pbtn">Vastzetten</div></div></div>`);
+PH.bevestigd = () => phoneShell(DAANP,`
+  <div class="ph1">Vastgezet ✓</div><div class="ph2">Tussen 1985 en 1991. Nu duimen… de anderen mogen 10 s stelen.</div>
+  ${phoneTL(DAAN,{insertAt:2,mys:pmys('Jouw keuze'),gaps:{1:{cls:'taken',label:'🟣 Mila steelt hier'},4:{cls:'taken',label:'🟣 Sanne steelt hier'}}})}`,
+  `<div class="pbtn dis">Oeps, terug (te laat)</div>`);
+PH.meegokken = () => phoneShell(SANNEP,`
+  <div class="ph1" style="color:${PC.kobalt}">Daan is aan de beurt</div><div class="ph2">Gok stiekem mee: tik waar jij denkt dat het hoort. Telt niet voor de score, wel voor “Beste oor”.</div>
+  ${phoneTL(DAAN,{gaps:{1:{cls:'guess',label:'jouw gok'},2:{cls:'own',label:'Daan legt hier'}}})}`,
+  `<div class="react" style="width:100%;margin:0"><span>🔥</span><span>😂</span><span>😱</span><span>🎶</span></div>`);
+PH.steal = () => phoneShell(MILAP,`
+  <div style="position:absolute;inset:0;box-shadow:inset 0 0 0 4px var(--violet);pointer-events:none;border-radius:0"></div>
+  <div class="ph1" style="color:#c9bcff">HITSTER! Kies een plek</div><div class="ph2">In Daans tijdlijn · nog <b class="num" style="color:var(--creme)">6 s</b></div>
+  <div class="pbar"><i style="width:60%"></i></div>
+  ${phoneTL(DAAN,{gaps:{0:{cls:'v',label:'vrij'},1:{cls:'sel',label:'jij: 1967 – 1985'},2:{cls:'own',label:'Daan legde hier'},3:{cls:'v',label:'vrij'},4:{cls:'taken',label:'bezet door Sanne'}}})}
+  <div class="sheet"><div class="grab"></div><div style="font-size:21px;font-weight:800">Steel tussen 1967 en 1985?</div><div class="ph2">Kost 1 token. Klopt het en had Daan het fout, dan is de kaart van jou.</div><div style="display:flex;gap:10px;margin-top:14px"><div class="pbtn sec">Andere plek</div><div class="pbtn v">Ja, steel!</div></div></div>`);
+PH.stealknop = () => phoneShell(MILAP,`
+  <div style="position:absolute;inset:0;box-shadow:inset 0 0 0 4px var(--violet);pointer-events:none"></div>
+  <div class="ph1">Daan heeft vastgezet</div><div class="ph2">Tussen 1985 en 1991. Denk je dat het fout is?</div>
+  <div style="margin-top:120px" class="hit">HITSTER!</div>
+  <div class="pbar" style="margin-top:20px"><i style="width:90%"></i></div>
+  <div class="ph2" style="text-align:center;margin-top:10px">nog 9 s · kost 1 token · 📳 trilt 1× lang</div>`);
+PH.onthulling = () => phoneShell(Object.assign({},MILAP,{k:6,t:1}),`
+  <div class="full" style="justify-content:flex-start;padding-top:40px">
+    <div style="font-size:52px">🎉</div><div style="font-size:44px;font-weight:900;color:${PC.framboos};line-height:1.05;margin-top:6px">Jij stal ’m!</div>
+    <div class="ph2" style="margin-top:8px">+1 kaart · token is ingeleverd</div>
+    <div style="width:100%;margin-top:28px">${pcard(SONG,'good')}</div>
+    <div class="ph2" style="margin-top:22px">Nu 6 van 10 · nog 1 token</div>
+    <div class="ph2" style="margin-top:4px">Je meegok-score: 9 goed</div>
+  </div>`);
+PH.goed = () => phoneShell(Object.assign({},DAANP,{k:5}),`
+  <div class="full" style="justify-content:flex-start;padding-top:40px">
+    <div style="font-size:52px">✓</div><div style="font-size:52px;font-weight:900;color:var(--mint);line-height:1">GOED!</div>
+    <div class="ph2" style="margin-top:8px">+1 kaart · nu 5 van 10</div>
+    <div style="width:100%;margin-top:28px">${pcard(SONG,'good')}</div>
+    <div class="ph2" style="margin-top:22px">Even afwachten of iemand bezwaar maakt tegen je titel + artiest…</div>
+  </div>`);
+PH.bezwaar = () => phoneShell(SANNEP,`
+  <div class="ph1">Had Daan het goed?</div><div class="ph2">Hij zei hardop:</div>
+  <div style="margin-top:14px">${pcard(SONG)}</div>
+  <div class="ph2" style="margin-top:14px">Alleen tikken als het <b style="color:var(--creme)">fout</b> was. Niets doen = goed.</div>
+  <div class="pbar" style="margin-top:14px"><i style="width:50%;background:var(--rood)"></i></div>
+  <div class="ph2" style="text-align:center">nog 3 s</div>`,
+  `<div class="pbtn sec">Klopt</div><div class="pbtn r" style="font-size:24px">Fout!</div>`);
+PH.tussenstand = () => phoneShell(JOSSEP,`
+  <div class="ph1">Tussenstand</div><div class="ph2">Jij staat 2e. Volgende beurt: Mila. Jij bent over 3 beurten.</div>
+  <div class="list">${[[MILAP,6],[JOSSEP,4],[DAANP,4],[SANNEP,3]].map(([p,k],i)=>`<div class="li">${i+1}. ${av(p)}${p.n}<span class="r num">${k}/10</span></div>`).join('')}</div>`,
+  `<div class="react" style="width:100%;margin:0"><span>🔥</span><span>😂</span><span>😱</span><span>🎶</span></div>`,{host:true});
+PH.winnaar = () => `<div class="phone" style="background:radial-gradient(500px 500px at 50% 35%,#ffcd73,var(--amber) 55%,#b56a0f);color:var(--inkt)">
+  <div class="status"><span>21:58</span><span>📶 ▮▮▯ 31%</span></div>
+  <div class="full"><div style="font-size:110px;line-height:1">👑</div><div style="font-size:46px;font-weight:900;line-height:1.05;margin-top:10px">Jij bent de<br>Tune Master!</div><div style="font-size:19px;font-weight:700;margin-top:14px">10 kaarten · 3 keer gestolen<br>Prijs: 🦊 Meesterdief</div><div style="font-size:16px;font-weight:600;margin-top:24px;opacity:.75">📳 trilt 3× · kijk naar de tv</div></div></div>`;
+PH.verbinding = () => phoneShell(JOSSEP,`
+  <div class="ph1" style="opacity:.5">Daan is aan de beurt</div>
+  <div style="opacity:.45">${phoneTL(DAAN,{insertAt:2})}</div>
+  <div class="toast">Te laat: het venster is dicht. Je token blijft van jou.</div>`,
+  `<div class="pbtn dis">Wachten op verbinding…</div>`,{net:true,host:true});
+PH.hostmenu = () => phoneShell(JOSSEP,`
+  <div class="ph1">Hostmenu</div><div class="ph2">Alleen zichtbaar voor jou (host).</div>
+  <div class="list">${['⏸ Pauze','⏭ Beurt van Daan overslaan','↩︎ Uitslag bezwaar omdraaien','🔊 Volume tv: 80%','👤 Speler verwijderen…','⏹ Spel stoppen'].map(t=>`<div class="li" style="height:56px">${t}</div>`).join('')}</div>`,
+  `<div class="pbtn sec" style="flex:1">Sluiten</div>`,{host:true});
+
+/* ---------------- toestanden ---------------- */
+const STATES = [
+  {id:'lobby', l:'Lobby', ph:'naam', info:'<b>Lobby.</b> Grote QR + code op de tv, stoelen vullen zich. Op de telefoon: naam en kleur kiezen.'},
+  {id:'beurtstart', l:'1 · Beurtstart', ph:'beurtstart', info:'<b>Beurtstart (4 s).</b> Daans telefoon kleurt amber en trilt. Hij kan een kaart kopen; anders start het nummer vanzelf.'},
+  {id:'speelt', l:'2 · Nummer speelt', ph:'speelt', info:'<b>Nummer speelt.</b> De raadselkaart zweeft boven de tijdlijn. Daan heeft nog geen plek gekozen; “Vastzetten” is grijs.'},
+  {id:'plaatsen', l:'3 · Plaatsen (live)', ph:'plaatsen', info:'<b>Plaatsen, live.</b> Daan tikt tussen 1985 en 1991; de tv volgt meteen. Hij claimt titel + artiest.'},
+  {id:'steal', l:'4 · HITSTER-venster', ph:'steal', info:'<b>Steal-venster (10 s).</b> Vastgezet. Mila tikte HITSTER! en kiest 1967–1985; Sanne heeft al “na 2004”.'},
+  {id:'onthulling', l:'5 · Onthulling (gestolen)', ph:'onthulling', info:'<b>Onthulling.</b> De kaart draait om (700 ms): 1979. Daan zat fout, Mila stal goed, Sanne verliest haar token.'},
+  {id:'goed', l:'5b · Onthulling (goed)', ph:'goed', info:'<b>Andere afloop:</b> had Daan tussen 1967 en 1985 gelegd, dan was het goed geweest: mint gloed, +1 kaart.'},
+  {id:'bezwaar', l:'6 · Bezwaar titel/artiest', ph:'bezwaar', info:'<b>Bezwaar (6 s).</b> Goed tenzij minstens de helft van de anderen “Fout!” tikt.'},
+  {id:'tussenstand', l:'Tussenstand', ph:'tussenstand', info:'<b>Tussenstand</b> na elke 10 nummers, 8 s.'},
+  {id:'winnaar', l:'Winnaar', ph:'winnaar', info:'<b>Winnaar.</b> Confetti in spelerskleuren, tijdlijn van de winnaar, prijzen. Host: “Nog een potje?”.'},
+  {id:'fout', l:'Fout: Spotify weg', ph:'verbinding', info:'<b>Foutmelding.</b> Spel staat stil; terugvaloptie: Spotify-app op de pc. Telefoon: verbinding kwijt + “te laat”-melding.'}
+];
+const PHONES = [
+  ['auto','(volgt de toestand)'],['aanmelden','Aanmelden'],['naam','Naam en kleur'],['wachten','Wachten in lobby'],['beurtstart','Jouw beurt (start)'],['speelt','Jouw beurt (plaatsen, leeg)'],['plaatsen','Jouw beurt (plek gekozen)'],['bevestigd','Bevestigd'],['meegokken','Andermans beurt (meegokken)'],['stealknop','HITSTER-knop'],['steal','Steal kiezen'],['onthulling','Resultaat: gestolen'],['goed','Resultaat: goed'],['bezwaar','Bezwaar'],['tussenstand','Tussenstand'],['winnaar','Winnaar'],['verbinding','Verbinding kwijt'],['hostmenu','Hostmenu']
+];
+const PHONECAP = {aanmelden:'Nieuwe speler',naam:'Josse',wachten:'Josse',beurtstart:'Daan (aan de beurt)',speelt:'Daan',plaatsen:'Daan',bevestigd:'Daan',meegokken:'Sanne (kijkt mee)',stealknop:'Mila',steal:'Mila (steelt)',onthulling:'Mila',goed:'Daan',bezwaar:'Sanne',tussenstand:'Josse (host)',winnaar:'Mila',verbinding:'Josse',hostmenu:'Josse (host)'};
+
+/* ---------------- render ---------------- */
+let cur='plaatsen', curPhone='auto';
+const params=new URLSearchParams(location.search);
+if(params.get('state')) cur=params.get('state');
+if(params.get('phone')) curPhone=params.get('phone');
+
+function renderTV(host, id){ host.innerHTML = `<div class="tv ${id==='winnaar'?'win':''}">${TV[id]()}</div>`; }
+function phoneId(){ return curPhone==='auto' ? STATES.find(s=>s.id===cur).ph : curPhone; }
+function render(){
+  renderTV(document.getElementById('tvHost'), cur);
+  const pid=phoneId();
+  document.getElementById('phoneHost').innerHTML = PH[pid]();
+  document.getElementById('phoneCap').textContent = 'Telefoon — ' + (PHONECAP[pid]||'');
+  document.getElementById('info').innerHTML = STATES.find(s=>s.id===cur).info;
+  document.querySelectorAll('#stateBtns button').forEach(b=>b.classList.toggle('on', b.dataset.id===cur));
+  fit();
+}
+function fit(){
+  const sc=document.getElementById('tvScaler'); const w=sc.parentElement.clientWidth-20; const s=w/1920;
+  sc.style.width=w+'px'; sc.style.height=(1080*s)+'px'; sc.querySelector('.tv').style.transform=`scale(${s})`;
+  const sc2=document.getElementById('tv10Scaler'); const w2=sc2.parentElement.clientWidth-20; const s2=w2/1920;
+  sc2.style.width=w2+'px'; sc2.style.height=(1080*s2)+'px'; const t=sc2.querySelector('.tv'); if(t) t.style.transform=`scale(${s2})`;
+}
+
+/* tv met 10 spelers */
+function renderTen(host){
+  const ten=[
+    {n:'Fleur',c:PC.limoen,k:9,t:1},{n:'Bram',c:PC.mandarijn,k:6,t:3},{n:'Noor',c:PC.orchidee,k:7,t:0},{n:'Tim',c:PC.hemel,k:4,t:5},{n:'Lotte',c:PC.zalm,k:5,t:2},
+    {n:'Youssef',c:PC.zilver,k:6,t:1},{n:'Daan',c:PC.kobalt,k:5,t:2},{n:'Mila',c:PC.framboos,k:8,t:2},{n:'Sanne',c:PC.turkoois,k:3,t:4},{n:'Josse',c:PC.zon,k:6,t:3}
+  ];
+  const fl=[{y:1958,t:'Johnny B. Goode',a:'Chuck Berry'},{y:1969,t:'Here Comes the Sun',a:'The Beatles'},{y:1975,t:'Bohemian Rhapsody',a:'Queen'},{y:1982,t:'Africa',a:'Toto'},{y:1987,t:'Never Gonna Give You Up',a:'Rick Astley'},{y:1995,t:'Wonderwall',a:'Oasis'},{y:2001,t:'Clocks',a:'Coldplay'},{y:2011,t:'Rolling in the Deep',a:'Adele'},{y:2017,t:'Shape of You',a:'Ed Sheeran'}];
+  host.innerHTML = `<div class="tv tv10">
+    ${topbar(ten,0,{per:{0:{flag:'MATCH POINT',mp:true},6:{off:true},1:{emo:'🔥'}}})}
+    <div class="phase"><div class="big" style="font-size:72px">Luister…</div><div class="sub">Fleur kiest een plek · nog één goede kaart en ze wint</div></div>
+    <div class="ring">${ring(31,60)}<div class="t num">31</div></div>
+    ${tvTimeline(fl,{insertAt:5,small:true,mystery:`<div class="card sm mystery" style="position:relative"><div class="arrow">Fleur legt hier</div><div class="eq" style="height:50px"><i></i><i></i><i></i><i></i><i></i></div><div class="q" style="font-size:56px">?</div></div>`})}
+    <div class="banner">Tussen <b>1987</b> en <b>1995</b>? · Meegokkers: <b>8</b></div>
+    ${bottombar('Luisteren & plaatsen','nummer 112 van 300',31/60)}
+  </div>`;
+  host.querySelector('.tv10 .tl').style.top='500px';
+}
+
+/* legenda */
+function legend(){
+  const items=[['Nacht','#120E24'],['Pruim','#1E1838'],['Pruim licht','#2A2350'],['Crème','#F6F1E7'],['Kaartpapier','#F4EBDD'],['Amber · aan de beurt','#FFB23F'],['Mint · goed','#34E08F'],['Rood · fout','#FF4D5E'],['Violet · stelen','#7A5CFF']];
+  const dec=[['≤50s','#9A8C7A'],['60s','#E9A23B'],['70s','#D9653B'],['80s','#E0457B'],['90s','#7A5CFF'],['00s','#2FA7E0'],['10s','#20BFA0'],['20s','#8BCF3F']];
+  const el=document.getElementById('legend');
+  el.innerHTML = items.map(([n,c])=>`<div class="sw2"><i style="background:${c};border:1px solid #3A3266"></i>${n} <span style="color:var(--gedempt)">${c}</span></div>`).join('')
+   + dec.map(([n,c])=>`<div class="sw2"><i style="background:${c}"></i>Decennium ${n}</div>`).join('')
+   + Object.entries(PC).map(([n,c])=>`<div class="sw2"><i style="background:${c};border-radius:50%"></i>Speler: ${n}</div>`).join('');
+}
+
+/* init */
+const sb=document.getElementById('stateBtns');
+STATES.forEach(s=>{ const b=document.createElement('button'); b.textContent=s.l; b.dataset.id=s.id; b.onclick=()=>{cur=s.id; render();}; sb.appendChild(b); });
+const sel=document.getElementById('phoneSel');
+PHONES.forEach(([id,l])=>{ const o=document.createElement('option'); o.value=id; o.textContent=l; sel.appendChild(o); });
+sel.value=curPhone; sel.onchange=()=>{curPhone=sel.value; render();};
+document.getElementById('openTv').onclick=()=>window.open(`?only=tv&state=${cur}`,'_blank');
+document.getElementById('openPhone').onclick=()=>window.open(`?only=phone&state=${cur}&phone=${phoneId()}`,'_blank');
+
+const only=params.get('only');
+if(only){
+  document.body.classList.add('only');
+  const box=document.createElement('div'); document.body.appendChild(box);
+  if(only==='tv'){ renderTV(box,cur); }
+  else if(only==='ten'){ renderTen(box); }
+  else if(only==='phone'){ box.innerHTML=PH[phoneId()](); box.firstElementChild.style.borderRadius='0'; }
+} else {
+  renderTen(document.getElementById('tv10Host'));
+  legend();
+  render();
+  window.addEventListener('resize',fit);
+}
+</script>
+</body>
+</html>
