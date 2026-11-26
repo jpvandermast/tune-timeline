@@ -5,6 +5,7 @@ import { GOALS, PLACE_TIMES, PLAYER_COLORS, gapNeighbours } from '../game/rules'
 import type { Card } from '../game/types';
 import { Avatar, PCard, PMystery, Ring, useCountdown } from '../ui/components';
 import { cleanCode } from '../net/messages';
+import { netMode, supabaseConfigured } from '../net/channel';
 
 type Send = ReturnType<typeof usePhone>['send'];
 
@@ -550,6 +551,13 @@ export default function PhoneApp() {
   const me = useMemo(() => pub?.players.find((p) => p.id === session?.playerId) ?? null, [pub, session]);
   useWakeLock(Boolean(me));
 
+  if (netMode() === 'supabase' && !supabaseConfigured())
+    return (
+      <Shell>
+        <div className="ph1" style={{ marginTop: 30 }}>Even geduld</div>
+        <div className="ph2">Deze versie van de site mist nog een instelling, waardoor telefoons de tv niet kunnen bereiken. Zeg het tegen de host.</div>
+      </Shell>
+    );
   if (!session) return <CodeEntry initial={ph.initialCode} onJoin={ph.joinByCode} />;
   if (!me) return <NameColor pub={pub} send={ph.send} busy={Boolean(ph.busy.join)} toast={ph.toast} />;
 

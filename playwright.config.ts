@@ -6,8 +6,10 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: [['list']],
-  use: { baseURL: 'http://127.0.0.1:5173', trace: 'retain-on-failure', channel: process.env.PW_CHANNEL ?? 'chrome' },
-  webServer: {
+  use: { baseURL: process.env.PW_BASE ?? 'http://127.0.0.1:5173', trace: 'retain-on-failure', channel: process.env.PW_CHANNEL ?? 'chrome' },
+  webServer: process.env.PW_BASE
+    ? undefined
+    : {
     command: 'npm run dev',
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: true,

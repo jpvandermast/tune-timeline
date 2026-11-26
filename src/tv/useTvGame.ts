@@ -3,11 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { apply, createGame } from '../game/engine';
 import { toPublic } from '../game/public';
 import type { Effect, GameEvent, GameState, Song } from '../game/types';
-import { openChannel, type Channel, type ChannelStatus } from '../net/channel';
+import { netMode, openChannel, supabaseConfigured, type Channel, type ChannelStatus } from '../net/channel';
 import { EV, PHONE_INTENTS, channelName, lobbyName, newChannelSecret, newRoomCode, type Intent } from '../net/messages';
 import { play as playSound, unlockAudio } from '../audio/sfx';
 import { FakePlayer, SpotifyWebPlayer, type MusicPlayer } from '../spotify/player';
 import { hasLogin } from '../spotify/auth';
+
+export const CONFIG_MISSING =
+  'De Supabase-instellingen ontbreken in deze versie van de site (VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY). Vul ze in bij Vercel → Settings → Environment Variables en rol opnieuw uit.';
 
 export type Setup = 'loading' | 'connect' | 'sound' | 'starting' | 'running' | 'error';
 
@@ -238,6 +241,11 @@ export function useTvGame() {
   }, [setup, getPlayer]);
 
   const begin = useCallback(async () => {
+    if (netMode() === 'supabase' && !supabaseConfigured()) {
+      setError(CONFIG_MISSING);
+      setSetup('error');
+      return;
+    }
     unlockAudio();
     const pl = getPlayer();
     pl.activate();
