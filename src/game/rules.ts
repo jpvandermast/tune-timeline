@@ -1,7 +1,14 @@
 // Losse, pure regel-helpers. Zie docs/concept-v2/CONCEPT.md hoofdstuk 2.
-import type { Card, Player, Song } from './types';
+import type { Card, Level, Player, Song } from './types';
 
 export const START_TOKENS = 2;
+/** Start-tokens per niveau (CONCEPT 2.8): Original 2, Pro 5, Expert 3. */
+export const LEVEL_TOKENS: Record<Level, number> = { original: 2, pro: 5, expert: 3 };
+export const LEVELS = ['original', 'pro', 'expert'] as const;
+export const LEVEL_NAMES: Record<Level, string> = { original: 'Original', pro: 'Pro', expert: 'Expert' };
+/** Reacties: max 1 per 3 s per speler; zweven 2 s op de tv. */
+export const REACT_GAP_MS = 3000;
+export const REACT_SHOW_MS = 2200;
 export const BUY_COST = 3;
 export const MAX_TOKENS = 5;
 export const MAX_PLAYERS = 10;
@@ -20,6 +27,8 @@ export const TIMES = {
   standings: 6000,
   songCheck: 6000,
   notice: 4000,
+  /** Wachten op een afwezige actieve speler (CONCEPT 2.9). */
+  absent: 20_000,
 } as const;
 
 /**
@@ -112,8 +121,18 @@ export const PLAYER_COLORS = [
 export const GOALS = [6, 8, 10, 12] as const;
 export const PLACE_TIMES = [30, 45, 60, 0] as const;
 
-/** Geschatte speelduur in minuten (CONCEPT 3.4), lineair geïnterpoleerd. */
-export function estimateMinutes(players: number, goal: number): number {
+/** Geschatte speelduur in minuten (CONCEPT 3.4), lineair geïnterpoleerd.
+ * De tabel geldt voor 45 s plaatstijd en Original; andere instellingen schalen mee
+ * (aanname: een beurt duurt ±50/60/70/75 s bij 30/45/60/geen timer; Pro/Expert
+ * hebben elke beurt een bezwaar en minder goede kaarten). */
+export function estimateMinutes(players: number, goal: number, placeSeconds = 45, level: Level = 'original'): number {
+  const turnSec: Record<number, number> = { 30: 50, 45: 60, 60: 70, 0: 75 };
+  const levelF: Record<Level, number> = { original: 1, pro: 1.15, expert: 1.3 };
+  const f = ((turnSec[placeSeconds] ?? 60) / 60) * levelF[level];
+  return Math.round(baseMinutes(players, goal) * f);
+}
+
+function baseMinutes(players: number, goal: number): number {
   const table: Record<number, Record<number, number>> = {
     4: { 6: 15, 8: 25, 10: 35 },
     6: { 6: 25, 8: 40, 10: 55 },
@@ -133,7 +152,7 @@ export function estimateMinutes(players: number, goal: number): number {
     return row[10] * 1.25; // doel 12
   };
   const base = lo === hi ? at(lo) : at(lo) + ((at(hi) - at(lo)) * (p - lo)) / (hi - lo);
-  return Math.round(p < 4 ? (base * p) / 4 : base);
+  return p < 4 ? (base * p) / 4 : base;
 }
 
 export function formatMinutes(min: number): string {

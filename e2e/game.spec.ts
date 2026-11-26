@@ -62,6 +62,14 @@ test('volledig spel van 3 spelers tot het doel, daarna "Nog een potje"', async (
   await phones[0].getByRole('button', { name: '6', exact: true }).click();
   await expect(tv.getByText('Doel: 6 kaarten')).toBeVisible();
   await phones[0].getByTestId('start').click();
+  // Uitleg-scherm: tv 4 blokken, telefoon lijst + "Begrepen"; de host gaat door.
+  await expect(tv.locator('[data-phase="explain"]')).toBeVisible();
+  await expect(phones[1].getByTestId('uitleg-telefoon')).toBeVisible();
+  await phones[1].getByTestId('begrepen').click();
+  await expect(tv.getByText('klaar:')).toBeVisible();
+  await tv.screenshot({ path: `${SHOTS}/tv-02b-uitleg.png` });
+  await phones[1].screenshot({ path: `${SHOTS}/phone-02b-uitleg.png` });
+  await phones[0].getByTestId('begrepen').click();
   await expect(tv.locator('[data-phase="deal"]')).toBeVisible();
   await tv.screenshot({ path: `${SHOTS}/tv-03-startkaarten.png` });
   await phones[2].screenshot({ path: `${SHOTS}/phone-03-startkaart.png` });
@@ -168,6 +176,7 @@ test('telefoon herladen en tv verversen midden in een beurt', async ({ browser }
   const a = await joinPhone(context, tv, 'Anna');
   const b = await joinPhone(context, tv, 'Bas');
   await a.getByTestId('start').click();
+  await a.getByTestId('begrepen').click();
   // wachten op beurtstart
   await expect.poll(async () => (await tvState(tv)).phase, { timeout: 15_000 }).toBe('turnStart');
   const st = await tvState(tv);

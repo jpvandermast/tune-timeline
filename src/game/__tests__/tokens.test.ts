@@ -12,7 +12,7 @@ const card = (y: number, id = `c${y}`): Card => ({ songId: id, year: y, title: `
 function placing(n = 4, activeYears = [1967, 1985, 1991, 2004], songYear = 1979) {
   const sim = new Sim(songs(YEARS), 11);
   for (let i = 0; i < n; i++) sim.join(`p${i}`, `Speler${i}`);
-  sim.intent('p0', 'start');
+  sim.start('p0');
   sim.until('turnStart');
   const active = sim.active().id;
   sim.intent(active, 'startSong');
@@ -300,7 +300,7 @@ describe('kopen (3 tokens, alleen bij de beurtstart)', () => {
     const sim = new Sim(songs(YEARS), 4);
     sim.join('a', 'A');
     sim.join('b', 'B');
-    sim.intent('a', 'start');
+    sim.start('a');
     sim.until('turnStart');
     const id = sim.active().id;
     sim.state = { ...sim.state, players: sim.state.players.map((p) => (p.id === id ? { ...p, tokens } : p)) };
@@ -522,7 +522,7 @@ describe('hostmenu', () => {
   it('speler verwijderen: uit de volgorde, zijn kaarten weg, beurtvolgorde klopt', () => {
     const sim = new Sim(songs(YEARS), 2);
     for (const id of ['a', 'b', 'c', 'd']) sim.join(id, id.toUpperCase());
-    sim.intent('a', 'start');
+    sim.start('a');
     sim.until('turnStart');
     const activeIdx = sim.state.turnIndex;
     const activeId = sim.active().id;
@@ -535,7 +535,7 @@ describe('hostmenu', () => {
   it('actieve speler verwijderen: zijn beurt eindigt', () => {
     const sim = new Sim(songs(YEARS), 2);
     for (const id of ['a', 'b', 'c']) sim.join(id, id.toUpperCase());
-    sim.intent('a', 'start');
+    sim.start('a');
     sim.until('turnStart');
     let activeId = sim.active().id;
     if (activeId === 'a') {

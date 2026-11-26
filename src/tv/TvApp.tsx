@@ -1,22 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { useTvGame } from './useTvGame';
-import type { GameState, Player } from '../game/types';
-import { toPublic, type PublicPlayer } from '../game/public';
-import { estimateMinutes, formatMinutes, gapNeighbours } from '../game/rules';
-import {
-  Avatar,
-  Chip,
-  FlipCard,
-  Logo,
-  MysteryCard,
-  QrSvg,
-  Ring,
-  TvCard,
-  band,
-  cardWidth,
-} from '../ui/components';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useTvGame, type Issue } from './useTvGame';
+import { matchPointIds } from '../game/engine';
+import type { Card, GameState, Player } from '../game/types';
+import { awards as computeAwards, toPublic, type PublicPlayer } from '../game/public';
+import { LEVEL_NAMES, LEVEL_TOKENS, estimateMinutes, formatMinutes, gapNeighbours } from '../game/rules';
+import { Avatar, Chip, FlipCard, Logo, MysteryCard, QrSvg, Ring, TvCard, band, cardWidth } from '../ui/components';
+import { play as playSound } from '../audio/sfx';
 import { login, clientId } from '../spotify/auth';
-import type { Card } from '../game/types';
+import type { Device } from '../spotify/player';
+
+type Room = { code: string; chan: string };
 
 // ---------------- podium 1920×1080 ----------------
 
@@ -58,36 +51,88 @@ function fracLeft(s: GameState, total: number): number {
   return Math.max(0, Math.min(1, (s.deadline - Date.now()) / total));
 }
 
-// ---------------- onderdelen ----------------
+const nm = (s: GameState, id: string | null | undefined) => s.players.find((x) => x.id === id);
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const tempo = (s: GameState) => s.settings.tempo || 1;
 
-function Topbar({ s, flags }: { s: GameState; flags?: Record<string, { flag?: string; mp?: boolean }> }) {
+function names(list: string[]) {
+  if (list.length <= 1) return list.join('');
+  return `${list.slice(0, -1).join(', ')} en ${list[list.length - 1]}`;
+}
+
+// ---------------- bovenbalk: vlaggen per fase ----------------
+
+type Flags = Record<string, { flag?: string; mp?: boolean }>;
+
+function flagsFor(s: GameState): Flags {
+  const out: Flags = {};
+  for (const id of matchPointIds(s)) out[id] = { flag: 'MATCH POINT', mp: true };
+  const r = s.reveal;
+  if (s.phase === 'turnStart' && s.lastBuy) out[s.lastBuy.playerId] = { flag: '−3 tokens' };
+  if ((s.phase === 'reveal' || s.phase === 'objection') && r && !r.pending) {
+    if (r.correct) out[r.playerId] = { flag: '+1 kaart' };
+    for (const st of r.steals) {
+      if (st.outcome === 'won') out[st.playerId] = { flag: '+1 kaart' };
+      else if (st.outcome === 'lost') out[st.playerId] = { flag: '−1 token' };
+      else out[st.playerId] = { flag: 'token terug' };
+    }
+  }
+  const o = s.objection;
+  if (s.phase === 'objection' && o?.result && o.mode === 'earn') {
+    if (o.result.awarded) out[o.playerId] = { flag: '+1 token' };
+    if (o.result.maxed) out[o.playerId] = { flag: 'Max 5' };
+  }
+  return out;
+}
+
+function Topbar({ s }: { s: GameState }) {
   const pub = toPublic(s).players;
   const goal = s.settings.goal;
+  const flags = flagsFor(s);
+  const emo = latestReactions(s);
   return (
     <div className="topbar">
       {pub.map((p) => {
-        const f = flags?.[p.id] ?? (p.cards.length === goal - 1 && s.phase !== 'winner' ? { flag: 'MATCH POINT', mp: true } : undefined);
-        return <Chip key={p.id} p={p} all={pub} goal={goal} active={s.turn?.playerId === p.id} flag={f?.flag} mp={f?.mp} />;
+        const f = flags[p.id];
+        return (
+          <Chip
+            key={p.id}
+            p={p}
+            all={pub}
+            goal={goal}
+            active={s.turn?.playerId === p.id && s.phase !== 'standings'}
+            flag={f?.flag}
+            mp={f?.mp}
+            emo={emo[p.id] ?? null}
+          />
+        );
       })}
     </div>
   );
 }
 
-function Bottombar({
-  ph,
-  sub,
-  frac,
-  violet,
-  room,
-  lokaal,
-}: {
-  ph: string;
-  sub: string;
-  frac: number;
-  violet?: boolean;
-  room: { code: string; chan: string };
-  lokaal: boolean;
-}) {
+function latestReactions(s: GameState): Record<string, { emoji: string; id: string }> {
+  const out: Record<string, { emoji: string; id: string }> = {};
+  for (const r of s.reactions) out[r.playerId] = { emoji: r.emoji, id: r.id };
+  return out;
+}
+
+/** Reacties van toeschouwers (geen bordje): zweven linksonder. */
+function SpectatorReactions({ s }: { s: GameState }) {
+  const list = s.reactions.filter((r) => s.spectators.some((x) => x.id === r.playerId));
+  if (!list.length) return null;
+  return (
+    <div className="specreact">
+      {list.map((r) => (
+        <span key={r.id} className="emoin">
+          {s.spectators.find((x) => x.id === r.playerId)?.name} {r.emoji}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function Bottombar({ ph, sub, frac, violet, room, lokaal }: { ph: string; sub: string; frac: number; violet?: boolean; room: Room; lokaal: boolean }) {
   return (
     <div className="bottombar">
       <div className="ph">
@@ -107,27 +152,37 @@ function Bottombar({
   );
 }
 
+// ---------------- tijdlijn ----------------
+
 function TvTimeline({
   cards,
   insertAt,
   mystery,
+  mysteryKey,
   top,
   stealable,
   stealGaps,
+  stealMarks,
   highlight,
   all,
+  slide,
 }: {
   cards: Card[];
   insertAt?: number | null;
   mystery?: (w: number) => ReactNode;
+  /** Wisselt bij elke verschuiving: korte glij-animatie. */
+  mysteryKey?: string | number;
   top?: number;
   /** Steelvenster: vrije gaten violet gestippeld (behalve de plek van de actieve speler). */
   stealable?: boolean;
   /** Geclaimde steelgaten: gat → speler. */
   stealGaps?: Record<number, PublicPlayer>;
+  /** Na de onthulling: ✓/✕ bij elke steelfiche. */
+  stealMarks?: Record<number, boolean>;
   /** songId van een kaart die oplicht (gekochte kaart). */
   highlight?: string;
   all?: PublicPlayer[];
+  slide?: boolean;
 }) {
   const hasMystery = Boolean(mystery && insertAt !== null && insertAt !== undefined);
   const items = cards.length + (hasMystery ? 1 : 0);
@@ -151,16 +206,22 @@ function TvTimeline({
   for (let g = 0; g <= cards.length; g++) {
     if (insertAt === g && hasMystery) {
       out.push(<div key="m-gap" className="gap" style={{ width: plainW }} />);
-      out.push(<div key="m">{mystery!(w)}</div>);
+      out.push(
+        <div key={`m${mysteryKey ?? ''}`} className="mslot" data-fly-src="1">
+          {mystery!(w)}
+        </div>,
+      );
     }
     const taken = stealGaps?.[g];
     const isSteal = Boolean((stealable && insertAt !== g) || taken);
+    const mark = stealMarks?.[g];
     out.push(
       <div key={`g${g}`} className={`gap ${isSteal ? 'steal' : ''} ${taken ? 'taken' : ''}`} style={{ width: isSteal ? stealW : plainW }}>
         {taken && (
           <div className="tok">
             <Avatar p={taken} all={all} style={stealW < 80 ? { width: 40, height: 40, fontSize: 20 } : undefined} />
             <span style={stealW < 80 ? { fontSize: 18, padding: '1px 5px' } : undefined}>{taken.name}</span>
+            {mark !== undefined && <em className={`tokmark ${mark ? 'ok' : 'no'}`}>{mark ? '✓' : '✕'}</em>}
           </div>
         )}
       </div>,
@@ -168,7 +229,7 @@ function TvTimeline({
     if (g < cards.length) out.push(<TvCard key={cards[g].songId} c={cards[g]} w={w} cls={highlight === cards[g].songId ? 'good' : ''} />);
   }
   return (
-    <div className="tl" style={top !== undefined ? { top } : undefined} data-testid="tv-timeline">
+    <div className={`tl ${slide ? 'slidein' : ''}`} style={top !== undefined ? { top } : undefined} data-testid="tv-timeline">
       {out}
     </div>
   );
@@ -176,12 +237,16 @@ function TvTimeline({
 
 function Ringer({ s, total, violet }: { s: GameState; total: number; violet?: boolean }) {
   const left = secsLeft(s);
+  // Laatste 3 s: zachte tik per seconde, cijfer pulseert (CONCEPT 4.2).
+  useEffect(() => {
+    if (left !== null && left > 0 && left <= 3 && !s.paused) playSound('tick');
+  }, [left, s.paused]);
   if (left === null) return null;
   const red = !violet && left <= 10;
   return (
     <div className="ring">
       <Ring sec={(s.deadline! - Date.now()) / 1000} total={total / 1000} color={violet ? 'var(--violet)' : red ? 'var(--rood)' : 'var(--amber)'} />
-      <div className={`t num ${red ? 'red' : ''}`} key={left <= 3 ? left : 'x'}>
+      <div className={`t num ${red ? 'red' : ''} ${left <= 3 ? 'pulse' : ''}`} key={left <= 3 ? left : 'x'}>
         {left}
       </div>
     </div>
@@ -196,6 +261,14 @@ const range = (years: number[], slot: number) => {
   return `Tussen ${l} en ${r}`;
 };
 
+function rangeShort(years: number[], slot: number) {
+  const [l, r] = gapNeighbours(years, slot);
+  if (l === null && r === null) return 'ergens';
+  if (l === null) return `vóór ${r}`;
+  if (r === null) return `na ${l}`;
+  return `${l}–${r}`;
+}
+
 function hoorde(between: [number | null, number | null]) {
   const [l, r] = between;
   if (l === null && r === null) return '';
@@ -205,12 +278,27 @@ function hoorde(between: [number | null, number | null]) {
   return `hoorde tussen ${l} en ${r}`;
 }
 
+/** Steelgaten: gat → speler (voor de tijdlijn). */
+function stealMap(s: GameState, steals: { playerId: string; slot: number }[]): Record<number, PublicPlayer> {
+  const pub = toPublic(s).players;
+  const out: Record<number, PublicPlayer> = {};
+  for (const st of steals) {
+    const pl = pub.find((x) => x.id === st.playerId);
+    if (pl) out[st.slot] = pl;
+  }
+  return out;
+}
+
+const guessers = (s: GameState) => Object.keys(s.turn?.guesses ?? {}).length;
+
 // ---------------- schermen ----------------
 
-function Lobby({ s, room, lokaal }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean }) {
+function Lobby({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const pub = toPublic(s).players;
   const n = pub.length;
-  const est = formatMinutes(estimateMinutes(Math.max(n, 2), s.settings.goal));
+  const lv = s.settings.level;
+  const est = formatMinutes(estimateMinutes(Math.max(n, 2), s.settings.goal, s.settings.placeSeconds, lv));
+  const emo = latestReactions(s);
   return (
     <div className="lobby">
       <div className="left">
@@ -241,6 +329,11 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: { code: string; chan: 
                 <span style={{ position: 'absolute', top: -14, left: 12, fontSize: 20, background: 'var(--nacht)', padding: '0 6px', color: 'var(--gedempt)' }}>
                   {i + 1}
                 </span>
+                {p && emo[p.id] && (
+                  <span key={emo[p.id].id} className="seatemo">
+                    {emo[p.id].emoji}
+                  </span>
+                )}
                 {p ? (
                   <>
                     <Avatar p={p} all={pub} />
@@ -254,30 +347,111 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: { code: string; chan: 
           })}
         </div>
         {n >= 8 && s.settings.goal > 8 && (
-          <div style={{ textAlign: 'center', marginTop: 34, fontSize: 30, color: 'var(--amber)', fontWeight: 700 }}>
-            Advies bij {n} spelers: doel 8 ({formatMinutes(estimateMinutes(n, 8))})
+          <div className="advice" data-testid="advies">
+            Advies bij {n} spelers: doel 8 ({formatMinutes(estimateMinutes(n, 8, s.settings.placeSeconds, lv))})
           </div>
         )}
         <div className="settings">
-          <div className="pill">Original</div>
+          <div className="pill">
+            {LEVEL_NAMES[lv]}
+            {lv !== 'original' && <span className="pillsub"> · {LEVEL_TOKENS[lv]} tokens</span>}
+          </div>
           <div className="pill">Doel: {s.settings.goal} kaarten</div>
           <div className="pill">Plaatsen: {s.settings.placeSeconds ? `${s.settings.placeSeconds} s` : 'geen timer'}</div>
-          <div className="pill est">Geschatte speelduur {est}</div>
+          <div className="pill est" data-testid="speelduur">
+            Geschatte speelduur {est}
+          </div>
         </div>
         <div style={{ textAlign: 'center', marginTop: 44, fontSize: 30, color: 'var(--gedempt)', fontWeight: 600 }}>
           {n < 2 ? 'Wachten op minstens 2 spelers…' : `${pub.find((p) => p.id === s.hostId)?.name ?? 'De host'} start het spel op de telefoon`}
+          {!s.settings.reactions && ' · reacties staan uit'}
         </div>
       </div>
     </div>
   );
 }
 
-function Deal({ s, room, lokaal }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean }) {
+function Explain({ s, room, lokaal, onDone }: { s: GameState; room: Room; lokaal: boolean; onDone: () => void }) {
+  const goal = s.settings.goal;
+  const lv = s.settings.level;
+  const others = s.players.filter((p) => p.id !== s.hostId);
+  const ready = s.explainReady.filter((id) => others.some((p) => p.id === id)).length;
+  const host = nm(s, s.hostId);
+  const keep = lv === 'pro' ? ' + titel + artiest' : lv === 'expert' ? ' + titel + artiest + exact jaar' : '';
+  return (
+    <>
+      <div style={{ position: 'absolute', top: 70, left: 0, right: 0, textAlign: 'center' }}>
+        <div className="logo" style={{ justifyContent: 'center' }}>
+          <Logo />
+          Zo werkt het
+        </div>
+        <div style={{ fontSize: 32, color: 'var(--gedempt)', marginTop: 16, fontWeight: 600 }}>
+          4 stappen · {host?.name ?? 'de host'} tikt “Begrepen” als iedereen klaar is
+          {others.length > 0 && (
+            <>
+              {' '}
+              · klaar: <b className="num" style={{ color: 'var(--creme)' }}>{ready}</b> van {others.length}
+            </>
+          )}
+        </div>
+      </div>
+      <div className="uitleg" data-testid="uitleg">
+        <div className="ublok on">
+          <div className="nr">1</div>
+          <h4>Luister</h4>
+          <p>De tv speelt een nummer. Niemand ziet titel of jaar.</p>
+          <div className="mini">
+            <i className="m" />
+          </div>
+        </div>
+        <div className="ublok">
+          <div className="nr">2</div>
+          <h4>Leg 'm neer</h4>
+          <p>
+            Tik op je telefoon waar hij in jouw tijdlijn hoort{lv === 'expert' ? ' en kies het jaar' : ''}. Dan Vastzetten.
+          </p>
+          <div className="mini">
+            <i />
+            <i className="m" />
+            <i />
+          </div>
+        </div>
+        <div className="ublok">
+          <div className="nr">3</div>
+          <h4>Steel!</h4>
+          <p>Denk je dat een ander fout zit? 1 token, kies de goede plek.</p>
+          <div className="mini">
+            <i />
+            <i style={{ background: 'var(--violet)' }} />
+            <i />
+          </div>
+        </div>
+        <div className="ublok">
+          <div className="nr">4</div>
+          <h4>{goal} wint</h4>
+          <p>
+            Eerste met {goal} kaarten goed op volgorde wint.{' '}
+            {lv === 'original' ? 'Titel + artiest goed = +1 token.' : `Kaart houden = goede plek${keep}.`}
+          </p>
+          <div className="mini">
+            <span className="coin" style={{ display: 'block', width: 44, height: 44 }} />
+            <span style={{ fontSize: 34, fontWeight: 800, marginLeft: 8 }}>+1</span>
+          </div>
+        </div>
+      </div>
+      <button className="btn-tv sec tvclick" style={{ position: 'absolute', right: 90, top: 800 }} onClick={onDone} data-testid="tv-begrepen">
+        Begrepen (tv)
+      </button>
+      <Bottombar ph="Uitleg" sub="Shazam = je bent af" frac={0.5} room={room} lokaal={lokaal} />
+    </>
+  );
+}
+
+function Deal({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const starter = s.players.find((p) => p.id === s.dealInfo?.playerId);
   const w = s.players.length > 6 ? 150 : 180;
   return (
     <>
-      <Topbar s={s} />
       <div className="phase">
         <div className="big">Startkaarten</div>
         <div className="sub">
@@ -292,34 +466,36 @@ function Deal({ s, room, lokaal }: { s: GameState; room: { code: string; chan: s
           </div>
         ))}
       </div>
-      <Bottombar ph="Startkaarten" sub="iedereen krijgt 1 open kaart" frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
+      <Bottombar ph="Startkaarten" sub="iedereen krijgt 1 open kaart" frac={fracLeft(s, 6000 * tempo(s))} room={room} lokaal={lokaal} />
     </>
   );
-}
-
-type Room = { code: string; chan: string };
-
-const nm = (s: GameState, id: string | null | undefined) => s.players.find((x) => x.id === id);
-
-/** Steelgaten: gat → speler (voor de tijdlijn). */
-function stealMap(s: GameState, steals: { playerId: string; slot: number }[]): Record<number, PublicPlayer> {
-  const pub = toPublic(s).players;
-  const out: Record<number, PublicPlayer> = {};
-  for (const st of steals) {
-    const pl = pub.find((x) => x.id === st.playerId);
-    if (pl) out[st.slot] = pl;
-  }
-  return out;
 }
 
 function TurnStart({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const p = s.players.find((x) => x.id === s.turn?.playerId)!;
   const left = secsLeft(s);
   const buy = s.lastBuy && s.lastBuy.playerId === p.id ? s.lastBuy : null;
+  if (s.turn?.waiting) {
+    // Actieve speler offline (CONCEPT 2.9 / mockup "afwezig").
+    const zij = p.name;
+    return (
+      <>
+        <div className="phase" style={{ top: 300 }} data-testid="wachten-op">
+          <div className="big" style={{ color: p.color, fontSize: 84 }}>
+            {zij} is even offline
+          </div>
+        </div>
+        <TvTimeline cards={p.cards} />
+        <div className="waitstrip">
+          Wachten op {zij}… <span className="num" style={{ color: 'var(--amber)' }}>{left}</span> · daarna slaan we de beurt over
+        </div>
+        <Bottombar ph="Beurtstart" sub="speler offline" frac={fracLeft(s, 20_000 * tempo(s))} room={room} lokaal={lokaal} />
+      </>
+    );
+  }
   if (buy) {
     return (
       <>
-        <Topbar s={s} flags={{ [p.id]: { flag: '−3 tokens' } }} />
         <div className="phase">
           <div className="big" style={{ color: p.color, fontSize: 84 }}>
             {p.name} koopt een kaart
@@ -330,22 +506,22 @@ function TurnStart({ s, room, lokaal }: { s: GameState; room: Room; lokaal: bool
         <div className="banner">
           Nu <b>{p.cards.length} van {s.settings.goal}</b> · het nummer voor deze beurt start over <b className="num">{left}</b>
         </div>
-        <Bottombar ph="Kaart gekocht" sub="beurt gaat gewoon door" frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
+        <Bottombar ph="Kaart gekocht" sub="beurt gaat gewoon door" frac={fracLeft(s, 6000 * tempo(s))} room={room} lokaal={lokaal} />
       </>
     );
   }
+  const mp = p.cards.length === s.settings.goal - 1;
   return (
     <>
-      <Topbar s={s} />
       <div className="phase">
         <div className="big" style={{ color: p.color, fontSize: 110 }}>
           {p.name}
         </div>
         <div className="sub" style={{ fontSize: 44, color: 'var(--creme)' }}>
-          is aan de beurt
+          is aan de beurt{mp && <span style={{ color: 'var(--rood)' }}> · match point!</span>}
         </div>
       </div>
-      <TvTimeline cards={p.cards} />
+      <TvTimeline cards={p.cards} slide />
       <div className="banner">
         Muziek start over <b className="num">{left}</b> ·{' '}
         {p.tokens >= 3 ? (
@@ -356,24 +532,31 @@ function TurnStart({ s, room, lokaal }: { s: GameState; room: Room; lokaal: bool
           `${p.name} kan ook zelf starten op de telefoon`
         )}
       </div>
-      <Bottombar ph="Beurtstart" sub={p.tokens >= 3 ? 'kopen kan alleen nu' : `ronde ${s.round}`} frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
+      <Bottombar ph="Beurtstart" sub={p.tokens >= 3 ? 'kopen kan alleen nu' : `ronde ${s.round}`} frac={fracLeft(s, 6000 * tempo(s))} room={room} lokaal={lokaal} />
     </>
   );
 }
 
 function Placing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const p = s.players.find((x) => x.id === s.turn?.playerId)!;
-  const slot = s.turn?.slot ?? null;
-  const total = s.settings.placeSeconds * 1000 * s.settings.tempo;
+  const t = s.turn!;
+  const slot = t.slot ?? null;
+  const total = s.settings.placeSeconds * 1000 * tempo(s);
   const years = p.cards.map((c) => c.year);
-  const sub = `nummer ${s.songsPlayed + 1} van ${toPublic(s).deckSize}`;
-  const claim = s.turn?.claim ? ' · titel + artiest geclaimd 🎤' : '';
+  const sub = s.paused ? 'gepauzeerd' : `nummer ${s.songsPlayed + 1} van ${toPublic(s).deckSize}`;
+  const lv = s.settings.level;
+  const extras: string[] = [];
+  const g = guessers(s);
+  if (lv === 'expert') extras.push(t.yearGuess !== null ? 'jaar gekozen ✓' : 'kiest ook een jaar');
+  if (t.claim) extras.push(lv === 'original' ? 'titel + artiest geclaimd 🎤' : 'titel + artiest hardop 🎤');
   return (
     <>
-      <Topbar s={s} />
       <div className="phase">
         <div className="big">Luister…</div>
-        <div className="sub">{slot === null ? `${p.name} kiest een plek in de tijdlijn` : `${p.name} schuift de kaart live heen en weer`}</div>
+        <div className="sub">
+          {slot === null ? `${p.name} kiest een plek in de tijdlijn` : `${p.name} schuift de kaart live heen en weer`}
+          {slot === null && ` · meegokkers: ${g}`}
+        </div>
       </div>
       <Ringer s={s} total={total} />
       {slot === null ? (
@@ -382,13 +565,18 @@ function Placing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolea
             <MysteryCard />
           </div>
           <TvTimeline cards={p.cards} top={560} />
-          {claim && <div className="banner" style={{ top: 960, fontSize: 26 }}>{claim.slice(3)}</div>}
+          {extras.length > 0 && (
+            <div className="banner" style={{ top: 960, fontSize: 26 }}>
+              {extras.join(' · ')}
+            </div>
+          )}
         </>
       ) : (
         <>
           <TvTimeline
             cards={p.cards}
             insertAt={slot}
+            mysteryKey={slot}
             mystery={(w) => (
               <MysteryCard w={w} cls="lift">
                 <div className="arrow">{p.name} legt hier</div>
@@ -396,7 +584,8 @@ function Placing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolea
             )}
           />
           <div className="banner">
-            {range(years, slot)}?{claim}
+            {range(years, slot)}? · Meegokkers: <b>{g}</b>
+            {extras.length ? ` · ${extras.join(' · ')}` : ''}
           </div>
         </>
       )}
@@ -405,54 +594,70 @@ function Placing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolea
   );
 }
 
-function rangeShort(years: number[], slot: number) {
-  const [l, r] = gapNeighbours(years, slot);
-  if (l === null && r === null) return 'ergens';
-  if (l === null) return `vóór ${r}`;
-  if (r === null) return `na ${l}`;
-  return `${l}–${r}`;
-}
-
 function Stealing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const t = s.turn!;
   const p = nm(s, t.playerId)!;
   const years = p.cards.map((c) => c.year);
   const pub = toPublic(s).players;
+  const lv = s.settings.level;
   const parts = [
     ...t.steals.map((st) => (
       <span key={st.playerId}>
-        <b>{nm(s, st.playerId)?.name}</b> ({rangeShort(years, st.slot)})
+        <b>{nm(s, st.playerId)?.name}</b> ({rangeShort(years, st.slot)}
+        {st.slot === t.slot ? ', zelfde plek' : ''})
       </span>
     )),
     ...t.passed.map((id) => <span key={id}>{nm(s, id)?.name} past</span>),
   ];
+  // In het steelvenster knippert alleen de violette rand, niet ook de raadselkaart.
+  const sameSlot = t.slot !== null ? t.steals.find((x) => x.slot === t.slot) : undefined;
+  const sameP = sameSlot ? pub.find((x) => x.id === sameSlot.playerId) : undefined;
   const stamp = (w: number) => (
-    <MysteryCard w={w}>
+    <MysteryCard w={w} still>
       <div className="stamp" style={w < 180 ? { top: 70, fontSize: 22 } : undefined}>
         VASTGEZET
       </div>
+      {sameP && (
+        <div className="sametok">
+          <Avatar p={sameP} all={pub} style={{ width: 40, height: 40, fontSize: 20 }} />
+          <span>{sameP.name} ook</span>
+        </div>
+      )}
     </MysteryCard>
   );
+  const mp = p.cards.length === s.settings.goal - 1;
   return (
     <>
       <div className="glow-v" />
-      <Topbar s={s} />
       <div className="phase">
         <div className="big" style={{ color: '#b9a8ff', fontSize: 96 }}>
           Wie steelt?
         </div>
         <div className="sub">
-          {t.slot === null ? `${p.name} koos geen plek: elke plek is te stelen` : `Denk je dat ${p.name} fout zit? Kies de goede plek`} · 1 token
+          {t.slot === null
+            ? `${p.name} koos geen plek: elke plek is te stelen`
+            : mp
+              ? `${p.name} zette vast ${rangeShort(years, t.slot)} · nog één goede kaart en ${p.name} wint`
+              : `Denk je dat ${p.name} fout zit? Kies de goede plek`}
+          {' · 1 token'}
+          {lv !== 'original' && ' · ook zijn plek mag'}
         </div>
       </div>
-      <Ringer s={s} total={10_000 * s.settings.tempo} violet />
+      <Ringer s={s} total={10_000 * tempo(s)} violet />
       {t.slot === null ? (
         <>
           <div style={{ position: 'absolute', left: '50%', top: 366, transform: 'translateX(-50%) scale(.74)', transformOrigin: '50% 0' }}>{stamp(200)}</div>
           <TvTimeline cards={p.cards} top={560} stealable stealGaps={stealMap(s, t.steals)} all={pub} />
         </>
       ) : (
-        <TvTimeline cards={p.cards} insertAt={t.slot} mystery={stamp} stealable stealGaps={stealMap(s, t.steals)} all={pub} />
+        <TvTimeline
+          cards={p.cards}
+          insertAt={t.slot}
+          mystery={stamp}
+          stealable={lv === 'original'}
+          stealGaps={stealMap(s, t.steals.filter((x) => x.slot !== t.slot))}
+          all={pub}
+        />
       )}
       <div className="banner" style={{ top: 900 }}>
         {parts.length ? (
@@ -469,14 +674,45 @@ function Stealing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boole
           'Tik op je telefoon een plek en dan STEEL'
         )}
       </div>
-      <Bottombar ph="Steelvenster" sub="wie het eerst tikt, heeft de plek" frac={fracLeft(s, 10_000 * s.settings.tempo)} violet room={room} lokaal={lokaal} />
+      <Bottombar ph="Steelvenster" sub="wie het eerst tikt, heeft de plek" frac={fracLeft(s, 10_000 * tempo(s))} violet room={room} lokaal={lokaal} />
     </>
   );
 }
 
-function names(list: string[]) {
-  if (list.length <= 1) return list.join('');
-  return `${list.slice(0, -1).join(', ')} en ${list[list.length - 1]}`;
+/** Kaart vliegt in een boog naar het bordje van de steler (800 ms, CONCEPT 4.2). */
+function FlyToChip({ card, to, delay }: { card: Card; to: string; delay: number }) {
+  const [pos, setPos] = useState<{ x: number; y: number; dx: number; dy: number; w: number } | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const t = window.setTimeout(() => {
+      const tv = ref.current?.closest('.tv') as HTMLElement | null;
+      const src = tv?.querySelector('[data-fly-src] .flipwrap') as HTMLElement | null;
+      const chip = tv?.querySelector(`[data-chip="${to}"]`) as HTMLElement | null;
+      if (!tv || !src || !chip) return;
+      const k = tv.getBoundingClientRect().width / 1920;
+      const tr = tv.getBoundingClientRect();
+      const a = src.getBoundingClientRect();
+      const b = chip.getBoundingClientRect();
+      const x = (a.left - tr.left) / k;
+      const y = (a.top - tr.top) / k;
+      const w = a.width / k;
+      const dx = (b.left - tr.left) / k + b.width / k / 2 - (x + w / 2);
+      const dy = (b.top - tr.top) / k + b.height / k / 2 - (y + (w * 1.33) / 2);
+      setPos({ x, y, dx, dy, w });
+    }, delay);
+    return () => clearTimeout(t);
+  }, [to, delay]);
+  return (
+    <div ref={ref} className="flylayer" aria-hidden="true">
+      {pos && (
+        <div className="flyx" style={{ left: pos.x, top: pos.y, ['--dx' as string]: `${pos.dx}px` }}>
+          <div className="flyy" style={{ ['--dy' as string]: `${pos.dy}px` }}>
+            <TvCard c={card} w={pos.w} cls="good" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Reveal({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
@@ -485,74 +721,108 @@ function Reveal({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean
   const song = r.song;
   const card: Card = { songId: song.id, year: song.year, title: song.title, artist: song.artist };
   const thief = r.stolenBy ? nm(s, r.stolenBy) : null;
+  const cand = r.pending && r.candidate ? nm(s, r.candidate) : null;
+  const pub = toPublic(s).players;
   // Tijdlijn zonder de zojuist gewonnen kaart; de flipkaart staat op de gekozen plek.
   const base = r.correct ? p.cards.filter((c) => c.songId !== song.id) : p.cards;
-  const flags: Record<string, { flag?: string }> = {};
-  if (r.correct) flags[p.id] = { flag: '+1 kaart' };
-  for (const st of r.steals) {
-    if (st.outcome === 'won') flags[st.playerId] = { flag: '+1 kaart' };
-    else if (st.outcome === 'lost') flags[st.playerId] = { flag: '−1 token' };
-    else flags[st.playerId] = { flag: 'token terug' };
-  }
   const losers = r.steals.filter((x) => x.outcome === 'lost').map((x) => nm(s, x.playerId)?.name ?? '');
   const refunds = r.steals.filter((x) => x.outcome === 'refund').map((x) => nm(s, x.playerId)?.name ?? '');
+  const g = r.guesses;
+  const gOk = g.filter((x) => x.correct).length;
   const bannerParts: string[] = [];
-  if (thief) bannerParts.push(`De kaart vliegt naar ${thief.name}`);
+  if (r.pending) bannerParts.push('Titel + artiest beslist zo wie de kaart krijgt');
+  else if (thief) bannerParts.push(`De kaart vliegt naar ${thief.name}`);
   else if (r.correct) bannerParts.push(`${p.name} heeft nu ${r.cardsAfter} kaarten`);
   else bannerParts.push(r.steals.length ? 'Niemand stal goed · de kaart gaat weg' : 'De kaart gaat weg');
-  if (losers.length) bannerParts.push(`${names(losers)} ${losers.length > 1 ? 'verliezen hun token' : 'verliest een token'}`);
-  if (refunds.length) bannerParts.push(`${names(refunds)} krijgt de token terug`);
+  if (g.length) bannerParts.push(`Meegokkers goed: ${gOk} van ${g.length}`);
+  if (!r.pending && losers.length) bannerParts.push(`${names(losers)} ${losers.length > 1 ? 'verliezen hun token' : 'verliest een token'}`);
+  if (!r.pending && refunds.length) bannerParts.push(`${names(refunds)} krijgt de token terug`);
+  const marks: Record<number, boolean> = {};
+  for (const st of r.steals) marks[st.slot] = st.correct;
+  const yearLine =
+    r.level === 'expert' && r.yearGuess !== null ? ` · ${p.name} koos ${r.yearGuess}${r.yearCorrect ? ' ✓' : ' ✕'}` : '';
+  let head: ReactNode;
+  if (r.pending && r.placeCorrect && (r.yearCorrect ?? true)) {
+    head = (
+      <>
+        <div className="result pop" style={{ color: 'var(--mint)' }}>
+          GOED GELEGD!
+        </div>
+        <div className="sub reveal-sub">
+          Dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b>
+          {yearLine} · nu nog titel + artiest
+        </div>
+      </>
+    );
+  } else if (r.correct) {
+    head = (
+      <>
+        <div className="result pop" style={{ color: 'var(--mint)' }}>
+          GOED!
+        </div>
+        <div className="sub reveal-sub">
+          {p.name} houdt de kaart · {r.cardsAfter} van {s.settings.goal}
+          {r.flipped ? ' · omgedraaid door de host' : ''}
+        </div>
+      </>
+    );
+  } else if (thief) {
+    head = (
+      <>
+        <div className="result pop" style={{ color: thief.color, fontSize: 96 }}>
+          GESTOLEN DOOR {thief.name.toUpperCase()}!
+        </div>
+        <div className="sub reveal-sub">
+          {p.name} zat mis: dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b> en {hoorde(r.between)}
+        </div>
+      </>
+    );
+  } else {
+    const yearMiss = r.level === 'expert' && r.placeCorrect && r.yearCorrect === false;
+    head = (
+      <>
+        <div className="result pop" style={{ color: 'var(--rood)' }}>
+          {yearMiss ? 'JAAR MIS!' : 'MIS!'}
+        </div>
+        <div className="sub reveal-sub">
+          {r.slot === null ? `${p.name} koos geen plek · ` : ''}
+          {yearMiss ? (
+            <>
+              Plek goed, maar {p.name} koos {r.yearGuess}: het was <b style={{ color: 'var(--creme)' }}>{song.year}</b>
+            </>
+          ) : (
+            <>
+              Dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b> en {hoorde(r.between)}
+            </>
+          )}
+          {cand ? ` · ${cand.name} stal op een goede plek` : !r.pending && r.steals.length ? ' · niemand stal goed' : ''}
+          {r.flipped ? ' · omgedraaid door de host' : ''}
+        </div>
+      </>
+    );
+  }
+  const flipCls = r.pending ? (r.placeCorrect ? 'good' : 'bad') : r.correct || thief ? 'good' : 'bad';
   return (
     <>
-      <Topbar s={s} flags={flags} />
-      <div className="phase">
-        {r.correct ? (
-          <>
-            <div className="result pop" style={{ color: 'var(--mint)' }}>
-              GOED!
-            </div>
-            <div className="sub reveal-sub">
-              {p.name} houdt de kaart · {r.cardsAfter} van {s.settings.goal}
-              {r.flipped ? ' · omgedraaid door de host' : ''}
-            </div>
-          </>
-        ) : thief ? (
-          <>
-            <div className="result pop" style={{ color: thief.color, fontSize: 96 }}>
-              GESTOLEN DOOR {thief.name.toUpperCase()}!
-            </div>
-            <div className="sub reveal-sub">
-              {p.name} zat mis: dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b> en {hoorde(r.between)}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="result pop" style={{ color: 'var(--rood)' }}>
-              MIS!
-            </div>
-            <div className="sub reveal-sub">
-              {r.slot === null ? `${p.name} koos geen plek · ` : ''}Dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b> en {hoorde(r.between)}
-              {r.flipped ? ' · omgedraaid door de host' : ''}
-            </div>
-          </>
-        )}
-      </div>
+      <div className="phase">{head}</div>
       {r.slot === null ? (
         <>
-          <div style={{ position: 'absolute', left: '50%', top: 340, transform: 'translateX(-50%) scale(.85)', transformOrigin: '50% 0' }}>
-            <FlipCard c={card} cls="bad" />
+          <div style={{ position: 'absolute', left: '50%', top: 340, transform: 'translateX(-50%) scale(.85)', transformOrigin: '50% 0' }} data-fly-src="1">
+            <FlipCard c={card} cls={thief ? 'good flown' : flipCls} />
           </div>
-          <TvTimeline cards={base} top={570} stealGaps={stealMap(s, r.steals)} all={toPublic(s).players} />
+          <TvTimeline cards={base} top={570} stealGaps={stealMap(s, r.steals)} stealMarks={marks} all={pub} />
         </>
       ) : (
         <TvTimeline
           cards={base}
           insertAt={r.slot}
-          mystery={(w) => <FlipCard c={card} w={w} cls={r.correct ? 'good' : 'bad'} drop={!r.correct} />}
-          stealGaps={stealMap(s, r.steals)}
-          all={toPublic(s).players}
+          mystery={(w) => <FlipCard c={card} w={w} cls={thief ? 'bad flown' : flipCls} drop={!r.correct && !thief && !r.pending} />}
+          stealGaps={stealMap(s, r.steals.filter((x) => x.slot !== r.slot))}
+          stealMarks={marks}
+          all={pub}
         />
       )}
+      {thief && <FlyToChip card={card} to={thief.id} delay={2100} />}
       <div className="banner reveal-sub">{bannerParts.join(' · ')}</div>
       <Bottombar ph="Onthulling" sub={`${song.artist} — ${song.title}`} frac={1} room={room} lokaal={lokaal} />
     </>
@@ -563,63 +833,91 @@ function ObjectionScreen({ s, room, lokaal }: { s: GameState; room: Room; lokaal
   const o = s.objection!;
   const r = s.reveal!;
   const p = nm(s, o.playerId)!;
+  const ex = o.extra ? nm(s, o.extra.playerId) : null;
   const fout = Object.values(o.votes).filter((v) => v === 'fout').length;
   const card: Card = { songId: r.song.id, year: r.song.year, title: r.song.title, artist: r.song.artist };
   const res = o.result;
-  const flags: Record<string, { flag?: string }> = {};
-  if (res?.awarded) flags[p.id] = { flag: '+1 token' };
-  if (res?.maxed) flags[p.id] = { flag: 'Max 5' };
+  const keep = o.mode === 'keep';
+  const who = ex ? `${p.name} en ${ex.name}` : p.name;
+  let resultText: ReactNode = null;
+  if (res) {
+    if (!keep) {
+      resultText = (
+        <>
+          {res.ok ? 'Goedgekeurd!' : 'Afgekeurd'}
+          <br />
+          <span className="restext">{res.ok ? (res.awarded ? `+1 token voor ${p.name}` : `${p.name} zit al op Max 5`) : `${fout} bezwaren · geen token`}</span>
+        </>
+      );
+    } else {
+      const winner = r.correct ? nm(s, r.playerId) : r.stolenBy ? nm(s, r.stolenBy) : null;
+      resultText = (
+        <>
+          {winner ? 'Goedgekeurd!' : 'Afgekeurd'}
+          <br />
+          <span className="restext">
+            {winner ? (r.stolenBy ? `${winner.name} krijgt de kaart · token terug` : `${winner.name} houdt de kaart`) : 'De kaart gaat weg'}
+          </span>
+        </>
+      );
+    }
+  }
+  const okColor = res ? (keep ? r.correct || r.stolenBy : res.ok) : false;
+  const rowView = (label: string, row: { votes: Record<string, string>; eligible: string[]; needed: number }) => {
+    const f = Object.values(row.votes).filter((v) => v === 'fout').length;
+    return (
+      <div>
+        {label}Bezwaren: <span className="num" style={{ color: 'var(--rood)' }}>{f}</span> van {row.eligible.length}
+        <br />
+        <span className="restext small">
+          {row.needed} {row.needed === 1 ? 'bezwaar' : 'bezwaren'} nodig om het af te keuren
+        </span>
+      </div>
+    );
+  };
   return (
     <>
-      <Topbar s={s} flags={flags} />
       <div className="phase">
         <div className="big" style={{ fontSize: 72 }}>
-          Had {p.name} titel + artiest goed?
+          Had {who} titel + artiest goed?
         </div>
         <div className="sub">
           Het was: “{r.song.title} — {r.song.artist}”
         </div>
       </div>
       <div style={{ position: 'absolute', top: 470, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 60, alignItems: 'center' }}>
-        <TvCard c={card} cls={res ? (res.ok ? 'good' : 'bad') : r.correct ? 'good' : ''} />
+        <TvCard c={card} cls={res ? (okColor ? 'good' : 'bad') : r.placeCorrect ? 'good' : ''} />
         {res ? (
-          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1.3, color: res.ok ? 'var(--mint)' : 'var(--rood)' }}>
-            {res.ok ? 'Goedgekeurd!' : 'Afgekeurd'}
-            <br />
-            <span style={{ fontSize: 34, color: 'var(--gedempt)', fontWeight: 700 }}>
-              {res.ok ? (res.awarded ? `+1 token voor ${p.name}` : `${p.name} zit al op Max 5`) : `${fout} bezwaren · geen token`}
-            </span>
-          </div>
+          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1.3, color: okColor ? 'var(--mint)' : 'var(--rood)' }}>{resultText}</div>
         ) : (
-          <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.5 }}>
-            Bezwaren: <span className="num" style={{ color: 'var(--rood)' }}>{fout}</span> van {o.eligible.length}
-            <br />
-            <span style={{ fontSize: 28, color: 'var(--gedempt)', fontWeight: 600 }}>
-              {o.needed} {o.needed === 1 ? 'bezwaar' : 'bezwaren'} nodig om het af te keuren
-            </span>
-            <br />
-            <span style={{ fontSize: 28, color: 'var(--gedempt)', fontWeight: 600 }}>
-              Geen bezwaar = <b style={{ color: 'var(--amber)' }}>+1 token</b> voor {p.name}
+          <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.5, display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {rowView(ex ? `${p.name} · ` : '', o)}
+            {o.extra && ex && rowView(`${ex.name} · `, o.extra)}
+            <span className="restext small">
+              {keep ? (
+                <>
+                  Geen bezwaar = <b style={{ color: 'var(--amber)' }}>{ex ? `${p.name} houdt de kaart` : `de kaart voor ${p.name}`}</b>
+                </>
+              ) : (
+                <>
+                  Geen bezwaar = <b style={{ color: 'var(--amber)' }}>+1 token</b> voor {p.name}
+                </>
+              )}
             </span>
           </div>
         )}
       </div>
-      <Bottombar
-        ph="Bezwaar?"
-        sub={res ? 'uitslag' : 'alleen tikken als het fout was · 6 s'}
-        frac={res ? 1 : fracLeft(s, 6000 * s.settings.tempo)}
-        room={room}
-        lokaal={lokaal}
-      />
+      <Bottombar ph="Bezwaar?" sub={res ? 'uitslag' : 'alleen tikken als het fout was · 6 s'} frac={res ? 1 : fracLeft(s, 6000 * tempo(s))} room={room} lokaal={lokaal} />
     </>
   );
 }
 
-function Standings({ s, room, lokaal, paused }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean; paused?: boolean }) {
+function Standings({ s, room, lokaal, paused }: { s: GameState; room: Room; lokaal: boolean; paused?: boolean }) {
   const pub = toPublic(s).players;
   const rows = [...pub].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
   const next = s.players[s.turnIndex];
   const mp = pub.filter((p) => p.cards.length === s.settings.goal - 1);
+  const emo = latestReactions(s);
   return (
     <>
       <div className="phase" style={{ top: 70 }}>
@@ -628,18 +926,23 @@ function Standings({ s, room, lokaal, paused }: { s: GameState; room: { code: st
         </div>
         <div className="sub">
           {paused ? `ronde ${s.round}` : `na ronde ${s.round - 1}`} · doel {s.settings.goal} kaarten
-          {mp.length > 0 && <span style={{ color: 'var(--rood)' }}> · {mp.map((p) => p.name).join(' en ')} {mp.length > 1 ? 'staan' : 'staat'} op match point</span>}
+          {mp.length > 0 && (
+            <span style={{ color: 'var(--rood)' }}>
+              {' '}
+              · {mp.map((p) => p.name).join(' en ')} {mp.length > 1 ? 'staan' : 'staat'} op match point
+            </span>
+          )}
         </div>
       </div>
       <div className="grid10">
         {rows.map((p, i) => (
-          <StandRow key={p.id} p={p} pos={i + 1} lead={i === 0} all={pub} goal={s.settings.goal} />
+          <StandRow key={p.id} p={p} pos={i + 1} lead={i === 0} all={pub} goal={s.settings.goal} emo={emo[p.id]} />
         ))}
       </div>
       <Bottombar
         ph={paused ? 'Pauze' : 'Tussenstand'}
         sub={paused ? 'de host gaat verder via het hostmenu' : `volgende beurt: ${next?.name} · 6 s`}
-        frac={paused ? 1 : fracLeft(s, 6000 * s.settings.tempo)}
+        frac={paused ? 1 : fracLeft(s, 6000 * tempo(s))}
         room={room}
         lokaal={lokaal}
       />
@@ -647,7 +950,7 @@ function Standings({ s, room, lokaal, paused }: { s: GameState; room: { code: st
   );
 }
 
-function StandRow({ p, pos, lead, all, goal }: { p: PublicPlayer; pos: number; lead: boolean; all: PublicPlayer[]; goal: number }) {
+function StandRow({ p, pos, lead, all, goal, emo }: { p: PublicPlayer; pos: number; lead: boolean; all: PublicPlayer[]; goal: number; emo?: { emoji: string; id: string } }) {
   return (
     <div className={`g10 ${lead ? 'lead' : ''}`}>
       <div className="pos num">{pos}</div>
@@ -665,6 +968,30 @@ function StandRow({ p, pos, lead, all, goal }: { p: PublicPlayer; pos: number; l
           </i>
         ))}
       </div>
+      {emo && (
+        <span key={emo.id} className="rowemo">
+          {emo.emoji}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Confetti({ s }: { s: GameState }) {
+  const palette = s.players.length ? s.players.map((p) => p.color) : ['#FFD23F', '#FF4F8B', '#4D7CFF'];
+  return (
+    <div className="confetti">
+      {Array.from({ length: 70 }, (_, i) => (
+        <i
+          key={i}
+          style={{
+            left: (i * 137) % 1920,
+            background: palette[i % palette.length],
+            animationDuration: `${2.2 + (i % 7) * 0.25}s`,
+            animationDelay: `${(i % 11) * 0.12}s`,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -672,31 +999,17 @@ function StandRow({ p, pos, lead, all, goal }: { p: PublicPlayer; pos: number; l
 function Winner({ s }: { s: GameState }) {
   const pub = toPublic(s);
   const w = s.players.find((p) => p.id === s.winnerId) as Player;
-  const cols = ['#FFD23F', '#FF8C42', '#FF4F8B', '#E07BFF', '#4D7CFF', '#3BC9F5', '#2ED3B7', '#A6E35A', '#FFAD9E', '#C9CED8'];
-  const playerCols = s.players.map((p) => p.color);
-  const palette = playerCols.length ? playerCols : cols;
   const n = w.cards.length;
   const cw = n > 10 ? 130 : 150;
   return (
     <>
-      <div className="confetti">
-        {Array.from({ length: 70 }, (_, i) => (
-          <i
-            key={i}
-            style={{
-              left: (i * 137) % 1920,
-              background: palette[i % palette.length],
-              animationDuration: `${2.4 + (i % 7) * 0.35}s`,
-              animationDelay: `-${(i % 11) * 0.3}s`,
-            }}
-          />
-        ))}
-      </div>
+      <Confetti s={s} />
       <div className="wtitle">
         <div className="crown">👑</div>
-        <div className="who">{w.name} wint!</div>
+        <div className="who namein">{w.name} wint!</div>
         <div className="s">
-          {n} kaarten · {w.stats.correct} goed geraden
+          {plural(n, 'kaart', 'kaarten')} · {w.tokens} {w.tokens === 1 ? 'token' : 'tokens'} over
+          {w.stats.steals ? ` · ${w.stats.steals} keer gestolen` : ''}
         </div>
       </div>
       <div className="wtl" style={{ gap: n > 10 ? 8 : 14 }}>
@@ -704,20 +1017,194 @@ function Winner({ s }: { s: GameState }) {
           <TvCard key={c.songId} c={c} w={cw} />
         ))}
       </div>
-      <div className="awards">
-        {pub.awards.map((a) => (
-          <div key={a.title} className="award">
-            {a.icon} {a.title}
-            <b>
-              {s.players.find((p) => p.id === a.playerId)?.name} · {a.detail}
-            </b>
-          </div>
-        ))}
-        <div className="award" style={{ background: 'var(--inkt)', color: 'var(--amber)' }}>
-          Host: <b>Nog een potje?</b>
+      <AwardRow s={s} awards={pub.awards} />
+    </>
+  );
+}
+
+function AwardRow({ s, awards }: { s: GameState; awards: ReturnType<typeof computeAwards> }) {
+  const who = (id: string) => s.players.find((p) => p.id === id)?.name ?? s.spectators.find((x) => x.id === id)?.name ?? '?';
+  return (
+    <div className="awards" data-testid="prijzen">
+      {awards.map((a) => (
+        <div key={a.title} className="award">
+          {a.icon} {a.title}
+          <b>
+            {who(a.playerId)} · {a.detail.replace(' goed meegegokt', '')}
+          </b>
+        </div>
+      ))}
+      <div className="award" style={{ background: 'var(--inkt)', color: 'var(--amber)' }}>
+        Host: <b>Nog een potje?</b>
+      </div>
+    </div>
+  );
+}
+
+/** Eindoverzicht (blijft staan): ranglijst + 4 prijzen + overgeslagen nummers (CONCEPT 3.6). */
+function Overview({ s }: { s: GameState }) {
+  const pub = toPublic(s);
+  const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
+  const all = ['Beste oor', 'Meesterdief', 'Tijdreiziger', 'Bijna!'];
+  const icons: Record<string, string> = { 'Beste oor': '👂', Meesterdief: '🦊', Tijdreiziger: '⏳', 'Bijna!': '😬' };
+  const who = (id: string) => s.players.find((p) => p.id === id)?.name ?? s.spectators.find((x) => x.id === id)?.name ?? '?';
+  return (
+    <div className="overview" data-testid="eindoverzicht">
+      <div className="ovhead">
+        <div className="logo" style={{ justifyContent: 'center', fontSize: 44 }}>
+          <Logo size={90} />
+          Eindoverzicht
+        </div>
+        <div className="sub">
+          {nm(s, s.winnerId)?.name} won met {plural(nm(s, s.winnerId)?.cards.length ?? 0, 'kaart', 'kaarten')} ·{' '}
+          {plural(s.songsPlayed, 'nummer', 'nummers')} gespeeld
         </div>
       </div>
-    </>
+      <div className="ovgrid">
+        <div className="ranks">
+          {rows.map((p, i) => (
+            <div key={p.id} className={`rk ${i === 0 ? 'lead' : ''}`}>
+              <div className="pos num">{i + 1}</div>
+              <Avatar p={p} all={pub.players} />
+              <b>{p.name}</b>
+              <span className="num">
+                {p.cards.length}/{s.settings.goal}
+              </span>
+              <span className="num tk">
+                <i className="coin" style={{ display: 'inline-block', width: 20, height: 20, verticalAlign: -3 }} /> {p.tokens}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="prizes">
+          {all.map((title) => {
+            const a = pub.awards.find((x) => x.title === title);
+            return (
+              <div key={title} className={`prize ${a ? '' : 'none'}`}>
+                <div className="pi">{icons[title]}</div>
+                <div>
+                  <div className="pt">{title}</div>
+                  <div className="pw">{a ? `${who(a.playerId)} · ${a.detail}` : 'niemand deze keer'}</div>
+                </div>
+              </div>
+            );
+          })}
+          {pub.skipped.length > 0 && (
+            <div className="skipped">
+              <b>Overgeslagen:</b> {pub.skipped.map((c) => `${c.title} (${c.year})`).join(' · ')}
+            </div>
+          )}
+          <div className="ovhost">
+            Host: <b>Nog een potje</b> of <b>Terug naar lobby</b> op de telefoon
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------- overlays ----------------
+
+function SpotifyIssue({ issue, onRetry, onApp }: { issue: Issue; onRetry: () => void; onApp: () => void }) {
+  const auth = issue.kind === 'auth';
+  const autoplay = issue.kind === 'autoplay';
+  return (
+    <div className="overlaywrap" data-testid="spotify-storing">
+      <div className="ocard">
+        <div className="ic">{auth ? '🔑' : autoplay ? '🔊' : '🔌'}</div>
+        <h3>{auth ? 'Spotify-inlog verlopen' : autoplay ? 'Klik om muziek te hervatten' : 'Spotify is even weg'}</h3>
+        <p>
+          {autoplay
+            ? 'De browser hield het geluid tegen.'
+            : issue.final
+              ? issue.text
+              : `${issue.text} poging ${issue.attempt} van 3.`}
+          <br />
+          Het spel staat stil, er gaat niets verloren.
+        </p>
+        {issue.final && (
+          <div className="btns">
+            <button className="btn-tv" onClick={onRetry} data-testid="opnieuw-verbinden">
+              {auth ? 'Opnieuw inloggen' : autoplay ? 'Muziek hervatten' : 'Opnieuw verbinden'}
+            </button>
+            {!autoplay && (
+              <button className="btn-tv sec" onClick={onApp} data-testid="spotify-app">
+                Gebruik de Spotify-app op deze pc
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DeviceChooser({
+  chooser,
+  onPick,
+  onRefresh,
+  onClose,
+}: {
+  chooser: { devices: Device[] | null; error: string | null };
+  onPick: (d: Device) => void;
+  onRefresh: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="overlaywrap" style={{ zIndex: 70 }} data-testid="apparaat-kiezen">
+      <div className="ocard" style={{ width: 1100 }}>
+        <div className="ic">💻</div>
+        <h3>Gebruik de Spotify-app op deze pc</h3>
+        <p>
+          1. Open de Spotify-app op deze pc (log in met hetzelfde account).
+          <br />
+          2. Speel kort iets af en zet het op pauze, zodat Spotify de app ziet.
+          <br />
+          3. Kies hieronder de app. Minimaliseer hem daarna; de tv stuurt hem aan.
+        </p>
+        <div className="devlist">
+          {chooser.devices === null && <p>Apparaten zoeken…</p>}
+          {chooser.devices?.length === 0 && <p>{chooser.error ?? 'Nog geen Spotify-app gevonden. Volg de stappen en klik op Zoek opnieuw.'}</p>}
+          {chooser.devices?.map((d) => (
+            <button key={d.id} className="btn-tv" onClick={() => onPick(d)} data-testid="apparaat">
+              {d.type === 'Computer' ? '💻' : d.type === 'Smartphone' ? '📱' : '🔈'} {d.name}
+              {d.active ? ' · actief' : ''}
+            </button>
+          ))}
+        </div>
+        <div className="btns">
+          <button className="btn-tv sec" onClick={onRefresh}>
+            Zoek opnieuw
+          </button>
+          <button className="btn-tv sec" onClick={onClose}>
+            Terug
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReclaimPrompt({ s, onAnswer }: { s: GameState; onAnswer: (id: string, ok: boolean) => void }) {
+  const r = s.reclaims[0];
+  if (!r) return null;
+  const p = nm(s, r.target);
+  if (!p) return null;
+  const pub = toPublic(s).players;
+  return (
+    <div className="reclaimbox" data-testid="tv-reclaim">
+      <Avatar p={pub.find((x) => x.id === p.id)!} all={pub} />
+      <div>
+        <b>Is dit {p.name}?</b>
+        <span>Een nieuwe telefoon wil verder als {p.name} (lege accu?). De host bevestigt op de telefoon of hier.</span>
+      </div>
+      <button className="btn-tv" onClick={() => onAnswer(r.id, true)}>
+        Ja
+      </button>
+      <button className="btn-tv sec" onClick={() => onAnswer(r.id, false)}>
+        Nee
+      </button>
+    </div>
   );
 }
 
@@ -736,10 +1223,32 @@ function Brand() {
   );
 }
 
+const IN_GAME_TOP = ['deal', 'turnStart', 'placing', 'stealing', 'reveal', 'objection'];
+
 export default function TvApp() {
   const g = useTvGame();
   const { state: s, room, setup } = g;
   const lokaal = g.flags.net === 'lokaal';
+
+  if (setup === 'second') {
+    return (
+      <Stage>
+        <Center>
+          <Brand />
+          <div className="ocard" style={{ marginTop: 30 }} data-testid="tweede-tv">
+            <div className="ic">📺</div>
+            <h3>Er is al een tv actief voor deze kamer.</h3>
+            <p>Deze pagina doet niets, zodat er geen dubbele muziek of verwarring is. Sluit dit tabblad, of neem het over als de andere tv dicht is.</p>
+            <div className="btns">
+              <button className="btn-tv sec" onClick={g.takeOver} data-testid="overnemen">
+                Toch deze tv gebruiken
+              </button>
+            </div>
+          </div>
+        </Center>
+      </Stage>
+    );
+  }
 
   if (setup === 'loading' || !s || !room) {
     return (
@@ -759,6 +1268,30 @@ export default function TvApp() {
           <Brand />
           <ErrorCard text={g.error ?? 'Er ging iets mis.'} />
         </Center>
+      </Stage>
+    );
+  }
+
+  if (setup === 'fallback') {
+    return (
+      <Stage>
+        <Center>
+          <Brand />
+          <div className="ocard" style={{ marginTop: 30 }} data-testid="sdk-fallback">
+            <div className="ic">🔌</div>
+            <h3>Spotify-speler start niet</h3>
+            <p>{g.error ?? 'De Spotify-speler werd niet klaar binnen 15 seconden.'} Probeer het opnieuw, of laat de Spotify-app op deze pc de muziek spelen.</p>
+            <div className="btns">
+              <button className="btn-tv" onClick={() => void g.begin()}>
+                Opnieuw proberen
+              </button>
+              <button className="btn-tv sec" onClick={() => void g.openChooser()} data-testid="spotify-app">
+                Gebruik de Spotify-app op deze pc
+              </button>
+            </div>
+          </div>
+        </Center>
+        {g.chooser && <DeviceChooser chooser={g.chooser} onPick={g.chooseDevice} onRefresh={() => void g.openChooser()} onClose={g.closeChooser} />}
       </Stage>
     );
   }
@@ -808,10 +1341,15 @@ export default function TvApp() {
     );
   }
 
+  const winnerFor = s.phase === 'winner' ? Date.now() - s.phaseStartedAt : 0;
+  const overview = s.phase === 'winner' && winnerFor > 8000 * tempo(s);
   let screen: ReactNode;
   switch (s.phase) {
     case 'lobby':
       screen = <Lobby s={s} room={room} lokaal={lokaal} />;
+      break;
+    case 'explain':
+      screen = <Explain s={s} room={room} lokaal={lokaal} onDone={g.understood} />;
       break;
     case 'deal':
       screen = <Deal s={s} room={room} lokaal={lokaal} />;
@@ -835,22 +1373,30 @@ export default function TvApp() {
       screen = <Standings s={s} room={room} lokaal={lokaal} />;
       break;
     case 'winner':
-      screen = <Winner s={s} />;
+      screen = overview ? <Overview s={s} /> : <Winner s={s} />;
       break;
   }
 
-  if (s.paused) screen = <Standings s={s} room={room} lokaal={lokaal} paused />;
+  // Pauze van de host: tussenstand. Pauze door Spotify-storing: het speelscherm blijft staan onder de melding.
+  const paused = s.paused && s.pausedBy !== 'system';
+  if (paused) screen = <Standings s={s} room={room} lokaal={lokaal} paused />;
+  const top = IN_GAME_TOP.includes(s.phase) && !paused;
 
   return (
-    <Stage win={s.phase === 'winner'} ten={s.players.length >= 7}>
-      <div data-phase={s.paused ? 'paused' : s.phase} data-testid="tv" style={{ position: 'absolute', inset: 0 }}>
+    <Stage win={s.phase === 'winner' && !overview} ten={s.players.length >= 7}>
+      <div data-phase={s.paused ? 'paused' : s.phase} data-testid="tv" data-overview={overview ? '1' : undefined} style={{ position: 'absolute', inset: 0 }}>
+        {top && <Topbar s={s} />}
         {screen}
+        <SpectatorReactions s={s} />
       </div>
       {s.notice && (
         <div className="toastTv tvnotice" style={s.phase === 'placing' ? { top: 130 } : undefined}>
-          {s.notice.kind === 'songFailed' ? '⚠ ' : ''}{s.notice.text}
+          {s.notice.kind === 'songFailed' ? '⚠ ' : ''}
+          {s.notice.text}
         </div>
       )}
+      <ReclaimPrompt s={s} onAnswer={g.confirmReclaim} />
+      {g.usingApp && <div className="appnote">Muziek via de Spotify-app: {g.usingApp}</div>}
       {g.net === 'error' && (
         <div className="overlaywrap">
           <div className="ocard">
@@ -860,33 +1406,15 @@ export default function TvApp() {
           </div>
         </div>
       )}
-      {g.problem && (
-        <div className="overlaywrap">
-          <div className="ocard">
-            <div className="ic">🔌</div>
-            <h3>Spotify is even weg</h3>
-            <p>{g.problem}</p>
-            <div className="btns">
-              <button className="btn-tv" onClick={() => window.location.reload()}>
-                Opnieuw verbinden
-              </button>
-              <button className="btn-tv sec" onClick={() => void login('/tv')}>
-                Opnieuw inloggen
-              </button>
-              <button className="btn-tv sec" onClick={g.clearProblem}>
-                Doorgaan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {g.issue && <SpotifyIssue issue={g.issue} onRetry={g.retrySpotify} onApp={() => void g.openChooser()} />}
+      {g.chooser && <DeviceChooser chooser={g.chooser} onPick={g.chooseDevice} onRefresh={() => void g.openChooser()} onClose={g.closeChooser} />}
       {(s.phase === 'lobby' || s.phase === 'winner') && (
         <button
           className="resume-corner smallnote"
           onClick={() => {
             if (window.confirm('Nieuw spel met een nieuwe code? Iedereen moet opnieuw meedoen.')) g.newGame();
           }}
-          style={{ color: s.phase === 'winner' ? 'var(--inkt)' : 'var(--gedempt)' }}
+          style={{ color: s.phase === 'winner' && !overview ? 'var(--inkt)' : 'var(--gedempt)' }}
         >
           Nieuwe kamer
         </button>

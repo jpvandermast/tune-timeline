@@ -1,5 +1,5 @@
 // Gedeelde bouwstenen in de stijl van de mockup.
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import QRCode from 'qrcode';
 import type { Card } from '../game/types';
 import type { PublicPlayer } from '../game/public';
@@ -50,6 +50,18 @@ export function Logo({ size = 120 }: { size?: number }) {
   );
 }
 
+/** Onthoudt het vorige getal en geeft een verschil terug (voor "+1"/"−1"-animaties). */
+function useDelta(value: number): { d: number; key: number } {
+  const prev = useRef(value);
+  const [out, setOut] = useState({ d: 0, key: 0 });
+  useEffect(() => {
+    const d = value - prev.current;
+    prev.current = value;
+    if (d !== 0) setOut((o) => ({ d, key: o.key + 1 }));
+  }, [value]);
+  return out;
+}
+
 export function Chip({
   p,
   all,
@@ -57,6 +69,7 @@ export function Chip({
   active,
   flag,
   mp,
+  emo,
 }: {
   p: PublicPlayer;
   all: PublicPlayer[];
@@ -64,11 +77,25 @@ export function Chip({
   active?: boolean;
   flag?: string;
   mp?: boolean;
+  /** Emoji-reactie die nu naast het bordje zweeft. */
+  emo?: { emoji: string; id: string } | null;
 }) {
   const off = !p.online;
+  const tok = useDelta(p.tokens);
+  const crd = useDelta(p.cards.length);
   return (
-    <div className={`chip ${active ? 'active' : ''} ${off ? 'off' : ''}`} data-testid={`chip-${p.name}`}>
+    <div className={`chip ${active ? 'active' : ''} ${off ? 'off' : ''}`} data-testid={`chip-${p.name}`} data-chip={p.id}>
       {flag && <div className={`flag ${mp ? 'mp' : ''}`}>{flag}</div>}
+      {emo && (
+        <div key={emo.id} className="emo" data-testid="emo">
+          {emo.emoji}
+        </div>
+      )}
+      {crd.d > 0 && (
+        <div key={`c${crd.key}`} className="plusone" aria-hidden="true">
+          +{crd.d}
+        </div>
+      )}
       <div className="row1">
         <Avatar p={p} all={all} />
         <div className="nm">
@@ -81,9 +108,17 @@ export function Chip({
           {p.cards.length}
           <small>/{goal}</small>
         </div>
-        <div className="tokc num">
+        <div className="tokc num" key={`t${tok.key}`} data-anim={tok.d > 0 ? 'up' : tok.d < 0 ? 'down' : undefined}>
           <i className="coin" />
           {p.tokens}
+          {tok.d !== 0 && (
+            <>
+              <i className={`coinfly ${tok.d > 0 ? 'in' : 'out'}`} aria-hidden="true" />
+              <b className={`tokdelta ${tok.d > 0 ? 'up' : 'down'}`} aria-hidden="true">
+                {tok.d > 0 ? `+${tok.d}` : `−${-tok.d}`}
+              </b>
+            </>
+          )}
         </div>
       </div>
       <div className="pips">
@@ -125,6 +160,9 @@ export function TvCard({ c, w = 200, cls = '', style }: { c: Card; w?: number; c
         {c.artist}
       </div>
       {cls.includes('bad') && <div className="strike" />}
+      {/* ✓/✕ naast de kleur: kleur is nooit het enige kenmerk (CONCEPT 8.2) */}
+      {/\bgood\b/.test(cls) && <div className="mark ok">✓</div>}
+      {/\bbad\b/.test(cls) && <div className="mark no">✕</div>}
     </div>
   );
 }
@@ -141,9 +179,9 @@ export function Eq({ style }: { style?: CSSProperties }) {
   );
 }
 
-export function MysteryCard({ w = 200, cls = '', children }: { w?: number; cls?: string; children?: ReactNode }) {
+export function MysteryCard({ w = 200, cls = '', children, still }: { w?: number; cls?: string; children?: ReactNode; still?: boolean }) {
   return (
-    <div className={`card mystery ${cls}`} style={{ position: 'relative', width: w, height: Math.round(w * 1.33) }}>
+    <div className={`card mystery ${cls} ${still ? 'still' : ''}`} style={{ position: 'relative', width: w, height: Math.round(w * 1.33) }}>
       {children}
       <Eq style={w < 180 ? { height: 50 } : undefined} />
       <div className="q" style={w < 180 ? { fontSize: 56 } : undefined}>
@@ -229,6 +267,67 @@ export function PCard({ c, cls = '' }: { c: Card; cls?: string }) {
         <b>{c.title}</b>
         <span>{c.artist}</span>
       </div>
+      {/\bgood\b/.test(cls) && <div className="pmark ok">✓</div>}
+      {/\bbad\b/.test(cls) && <div className="pmark no">✕</div>}
+    </div>
+  );
+}
+
+/** Jaarwiel (Expert): grote − / + knoppen en snelle stappen van 10; tikken, niet vegen. */
+export function YearWheel({
+  value,
+  onChange,
+  min = 1950,
+  max = new Date().getFullYear(),
+}: {
+  value: number | null;
+  onChange: (y: number) => void;
+  min?: number;
+  max?: number;
+}) {
+  const v = value ?? Math.round((min + max) / 2);
+  const set = (y: number) => onChange(Math.max(min, Math.min(max, y)));
+  return (
+    <div className="yearwheel" data-testid="jaarwiel">
+      <button onClick={() => set(v - 10)} aria-label="10 jaar eerder">
+        −10
+      </button>
+      <button onClick={() => set(v - 1)} aria-label="1 jaar eerder">
+        −
+      </button>
+      <div className={`yw num ${value === null ? 'unset' : ''}`} data-testid="jaar" aria-live="polite">
+        {value === null ? 'jaar?' : value}
+      </div>
+      <button onClick={() => set(v + 1)} aria-label="1 jaar later">
+        +
+      </button>
+      <button onClick={() => set(v + 10)} aria-label="10 jaar later">
+        +10
+      </button>
+    </div>
+  );
+}
+
+/** Emoji-reactieknoppen (telefoon); max 1 per 3 s. */
+export function ReactBar({ onReact, disabled }: { onReact: (e: string) => void; disabled?: boolean }) {
+  const [cool, setCool] = useState(false);
+  return (
+    <div className="react" data-testid="reacties" style={{ width: '100%', margin: 0 }}>
+      {['🔥', '😂', '😱', '🎶'].map((e) => (
+        <button
+          key={e}
+          className={cool || disabled ? 'cool' : ''}
+          disabled={cool || disabled}
+          aria-label={`Reactie ${e}`}
+          onClick={() => {
+            onReact(e);
+            setCool(true);
+            window.setTimeout(() => setCool(false), 3000);
+          }}
+        >
+          {e}
+        </button>
+      ))}
     </div>
   );
 }

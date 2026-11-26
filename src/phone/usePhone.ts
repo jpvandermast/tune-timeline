@@ -101,6 +101,15 @@ export function usePhone() {
         setPub(st);
       }
     });
+    ch.on(EV.adopt, (m: { requesterId: string; playerId: string }) => {
+      // "Ik speelde al" bevestigd: deze telefoon wordt die speler (zelfde geheim).
+      if (m?.requesterId === session.playerId && typeof m.playerId === 'string') {
+        const next = { ...session, playerId: m.playerId };
+        saveSession(next);
+        setSession(next);
+        showToast('Gelukt! Je speelt verder.');
+      }
+    });
     ch.on(EV.reply, (m: { playerId: string; text: string }) => {
       if (m.playerId === session.playerId) {
         setBusy({});

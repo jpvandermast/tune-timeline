@@ -49,6 +49,7 @@ test('4 spelers: kopen, claimen, stelen, passen, bezwaar, overslaan en pauze', a
   const phones: Page[] = [];
   for (const n of names) phones.push(await join(context, tv, n));
   await phones[0].getByTestId('start').click();
+  await phones[0].getByTestId('begrepen').click();
   await expect.poll(async () => (await tvState(tv)).phase, { timeout: 15_000 }).toBe('turnStart');
 
   const pageOf = async (id: string) => phones[(await tvState(tv)).players.findIndex((p) => p.id === id)];

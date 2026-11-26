@@ -8,6 +8,8 @@ export const EV = {
   reply: 'reply', // tv → telefoon: { playerId, text }
   ask: 'ask', // lobbykanaal: telefoon vraagt het kanaalgeheim { nonce }
   secret: 'secret', // lobbykanaal: tv antwoordt { nonce, secret }
+  adopt: 'adopt', // tv → telefoon: { requesterId, playerId } ("Ik speelde al" bevestigd)
+  tvBeat: 'tvBeat', // tv → allen: { tvId, since } (tweede tv herkennen)
 } as const;
 
 export interface StateMsg {
@@ -18,6 +20,12 @@ export interface StateMsg {
 export const PHONE_INTENTS = [
   'join',
   'start',
+  'understood',
+  'guess',
+  'react',
+  'yearPick',
+  'reclaim',
+  'confirmReclaim',
   'settings',
   'startSong',
   'pickSlot',

@@ -17,7 +17,7 @@ function lobby(n = 3) {
 
 function started(n = 3) {
   const sim = lobby(n);
-  sim.intent('p0', 'start');
+  sim.start('p0');
   return sim;
 }
 
@@ -67,12 +67,12 @@ describe('lobby en aanmelden', () => {
   });
   it('alleen de host kan starten, en pas met 2 spelers', () => {
     const one = lobby(1);
-    one.intent('p0', 'start');
+    one.start('p0');
     expect(one.state.phase).toBe('lobby');
     const sim = lobby(3);
-    sim.intent('p1', 'start');
+    sim.start('p1');
     expect(sim.state.phase).toBe('lobby');
-    sim.intent('p0', 'start');
+    sim.start('p0');
     expect(sim.state.phase).toBe('deal');
   });
   it('verkeerd spelersgeheim wordt genegeerd', () => {
@@ -99,10 +99,11 @@ describe('lobby en aanmelden', () => {
     sim.intent('p0', 'settings', { goal: 8, placeSeconds: 60 });
     expect(sim.state.settings).toMatchObject({ goal: 8, placeSeconds: 60 });
   });
-  it('na de start kan niemand meer instappen (fase 1)', () => {
+  it('na de start stap je in als late speler (fase 3; details in phase3.test.ts)', () => {
     const sim = started(2);
     sim.join('laat', 'Laat', 5);
-    expect(sim.state.players).toHaveLength(2);
+    expect(sim.state.players).toHaveLength(3);
+    expect(sim.state.players.find((p) => p.id === 'laat')!.cards).toHaveLength(1);
   });
 });
 
@@ -223,7 +224,7 @@ describe('een beurt', () => {
   it('geen timer (instelling 0): wacht tot vastzetten', () => {
     const sim = lobby(2);
     sim.intent('p0', 'settings', { placeSeconds: 0 });
-    sim.intent('p0', 'start');
+    sim.start('p0');
     sim.until('turnStart');
     sim.intent(sim.active().id, 'startSong');
     sim.playing();
@@ -300,7 +301,7 @@ describe('stapel op', () => {
     const sim = new Sim(songs([1965, 1975, 1985, 1995]));
     sim.join('a', 'A');
     sim.join('b', 'B');
-    sim.intent('a', 'start');
+    sim.start('a');
     // 2 startkaarten, 2 over in de stapel
     expect(sim.state.deck).toHaveLength(2);
     const onTimelines = sim.state.players.flatMap((p) => p.cards.map((c) => c.songId));
@@ -321,7 +322,7 @@ describe('winnen', () => {
     sim.join('a', 'A');
     sim.join('b', 'B');
     sim.intent('a', 'settings', { goal: 6 });
-    sim.intent('a', 'start');
+    sim.start('a');
     let guard = 0;
     while (sim.state.phase !== 'winner' && guard++ < 60) {
       playTurn(sim, true);
@@ -339,7 +340,7 @@ describe('winnen', () => {
     sim.join('a', 'A');
     sim.join('b', 'B');
     sim.intent('a', 'settings', { goal: 6 });
-    sim.intent('a', 'start');
+    sim.start('a');
     while (sim.state.phase !== 'winner') {
       playTurn(sim, true);
       sim.advance(5000);

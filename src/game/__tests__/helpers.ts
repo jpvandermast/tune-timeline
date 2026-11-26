@@ -38,6 +38,11 @@ export class Sim {
   intent(id: string, type: string, extra: Record<string, unknown> = {}) {
     return this.send({ type, playerId: id, secret: `geheim-${id}`, actionId: aid(), ...extra } as never);
   }
+  /** Host start het spel en tikt "Begrepen" op het uitleg-scherm. */
+  start(hostId: string) {
+    this.intent(hostId, 'start');
+    return this.intent(hostId, 'understood');
+  }
   advance(ms: number) {
     this.now += ms;
     return this.send({ type: 'tick' });

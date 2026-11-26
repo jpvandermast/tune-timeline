@@ -1,9 +1,15 @@
 /* Tune Timeline — stijl "nachtradio". Overgenomen uit docs/concept-v2/mockups/index.html. */
+/* Space Grotesk (SIL Open Font License, public/fonts/OFL.txt), zelf gehost: koppen, jaartallen en cijfers. */
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/space-grotesk-latin-600.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/space-grotesk-latin-700.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url(/fonts/space-grotesk-latin-ext-600.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:700;font-display:swap;src:url(/fonts/space-grotesk-latin-ext-700.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 :root{
   --nacht:#120E24; --pruim:#1E1838; --pruim2:#2A2350; --schemer:#3A3266;
   --creme:#F6F1E7; --gedempt:#A99FC9; --papier:#F4EBDD; --inkt:#1A1530;
   --amber:#FFB23F; --mint:#34E08F; --rood:#FF4D5E; --violet:#7A5CFF; --geel:#FFD23F;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --disp: "Space Grotesk", var(--font);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--nacht);color:var(--creme);font-family:var(--font);-webkit-tap-highlight-color:transparent}
@@ -36,7 +42,7 @@ input{font:inherit;color:inherit}
 .pips i{flex:1;height:6px;border-radius:3px;background:var(--schemer)}
 .chip .flag{position:absolute;top:-16px;right:10px;background:var(--amber);color:var(--inkt);font-size:16px;font-weight:800;padding:3px 10px;border-radius:999px}
 .chip .flag.mp{background:var(--rood);color:#fff}
-.chip .emo{position:absolute;top:-26px;right:-8px;font-size:38px;animation:floatup 2s ease-out infinite}
+.chip .emo{position:absolute;top:-26px;right:-8px;font-size:38px;animation:floatup 2s ease-out both;pointer-events:none}
 @keyframes floatup{0%{opacity:0;transform:translateY(10px)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
 
 .tv .phase{position:absolute;left:0;right:0;top:200px;text-align:center}
@@ -84,7 +90,7 @@ input{font:inherit;color:inherit}
 
 /* flip */
 .flipwrap{perspective:1200px;width:200px;height:266px;flex:0 0 auto;position:relative}
-.flipper{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:flip .7s cubic-bezier(.2,.8,.2,1) .3s both}
+.flipper{position:relative;width:100%;height:100%;transform-style:preserve-3d;animation:flip .7s cubic-bezier(.2,.8,.2,1) 1.2s both}
 .flipper > .card{position:absolute;inset:0;backface-visibility:hidden}
 .flipper > .back{transform:rotateY(180deg)}
 @keyframes flip{0%{transform:rotateY(0) scale(1)}50%{transform:rotateY(90deg) scale(1.12)}100%{transform:rotateY(180deg) scale(1)}}
@@ -317,11 +323,11 @@ input{font:inherit;color:inherit}
 @keyframes dealin{from{opacity:0;transform:translateY(-120px) rotate(-8deg) scale(.6)}to{opacity:1;transform:none}}
 .ring .t.red{color:var(--rood)}
 .ring .t.pulse{animation:tpulse .2s ease-out}
-.result.pop{animation:resultin .5s cubic-bezier(.2,.8,.2,1) .9s both}
+.result.pop{animation:resultin .5s cubic-bezier(.2,.8,.2,1) 1.85s both}
 @keyframes resultin{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
-.reveal-sub{animation:fadein .4s ease .9s both}
+.reveal-sub{animation:fadein .4s ease 1.9s both}
 @keyframes fadein{from{opacity:0}to{opacity:1}}
-.flipwrap.drop{animation:dropaway .7s ease-in 2.8s both}
+.flipwrap.drop{animation:dropaway .6s ease-in 2.4s both}
 @keyframes dropaway{0%{transform:none}15%{transform:translateX(-10px)}30%{transform:translateX(10px)}45%{transform:none}100%{transform:translateY(160px);opacity:.15}}
 .overlaywrap{position:absolute;inset:0;background:rgba(10,8,22,.6);display:grid;place-items:center;z-index:50}
 .tvnotice{z-index:40}
@@ -358,10 +364,163 @@ input{font:inherit;color:inherit}
 .home a.p{background:var(--amber);color:var(--inkt)}
 .home a.s{background:var(--pruim2);color:var(--creme)}
 .home p{color:var(--gedempt);font-size:17px;max-width:360px;line-height:1.4}
-@media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
-}
+
 @keyframes tpulse{from{transform:scale(1.25)}to{transform:scale(1)}}
 
 .win .card::before,.win .card::after{background:#f0a53a}
 .sheet .li{background:var(--pruim2);color:var(--creme)}
+
+/* ======== fase 3: afwerking ======== */
+/* lettertype: koppen, jaartallen en cijfers in Space Grotesk */
+.num,.card .year,.pcard .y,.tv .phase .big,.result,.logo,.bigcode,.seatshead .n,.chip .cnt,.tokc,.ring .t,.g10 .pos,.g10 .yrs i,
+.ph1,.pring b,.win .wtitle .who,.ublok h4,.ublok .nr,.ocard h3,.disp,.yearwheel .yw,.ovhead .logo,.prize .pt,.rk .pos{font-family:var(--disp)}
+.tv .phase .big,.result,.win .wtitle .who{letter-spacing:0}
+
+/* bordje: emoji, +1 kaart, munt rolt erbij/eraf */
+.chip .plusone{position:absolute;left:50%;top:-6px;transform:translateX(-50%);font:700 34px var(--disp);color:var(--mint);pointer-events:none;animation:riseup .9s ease-out both;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+@keyframes riseup{0%{opacity:0;transform:translate(-50%,20px)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-46px)}}
+.tokc{position:relative}
+.tokc[data-anim] > .coin:first-child{animation:coinbump .5s ease-out}
+@keyframes coinbump{40%{transform:scale(1.35)}}
+.coinfly{position:absolute;left:0;top:2px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd88a,var(--amber) 60%,#c9801a);pointer-events:none}
+.coinfly.in{animation:coinin .5s cubic-bezier(.3,1.4,.6,1) both}
+.coinfly.out{animation:coinout .5s ease-in both}
+@keyframes coinin{0%{transform:translate(-60px,70px) rotate(-360deg);opacity:0}30%{opacity:1}100%{transform:none;opacity:0}}
+@keyframes coinout{0%{transform:none;opacity:1}100%{transform:translate(60px,70px) rotate(360deg);opacity:0}}
+.tokdelta{position:absolute;right:-6px;top:-30px;font:700 26px var(--disp);pointer-events:none;animation:riseup2 .9s ease-out both}
+.tokdelta.up{color:var(--mint)}.tokdelta.down{color:var(--rood)}
+@keyframes riseup2{0%{opacity:0;transform:translateY(10px)}25%{opacity:1}100%{opacity:0;transform:translateY(-26px)}}
+
+/* ✓/✕ naast de kleur (kleurenblind-vriendelijk) */
+.card .mark{position:absolute;right:-14px;top:-14px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font:700 28px var(--disp);color:var(--inkt);z-index:3;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.card .mark.ok{background:var(--mint)}.card .mark.no{background:var(--rood);color:#fff}
+.pcard{position:relative}
+.pcard .pmark{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 17px var(--disp)}
+.pcard .pmark.ok{background:var(--mint);color:var(--inkt)}.pcard .pmark.no{background:var(--rood);color:#fff}
+.pcard .t{padding-right:30px}
+.tokmark{font-style:normal;position:absolute;bottom:-34px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:700 22px var(--disp);animation:fadein .3s ease 1.9s both}
+.tokmark.ok{background:var(--mint);color:var(--inkt)}.tokmark.no{background:var(--rood);color:#fff}
+
+/* nooit meer dan één ding tegelijk knipperen: in het steelvenster pulseert alleen de rand */
+.card.mystery.still{animation:none;box-shadow:0 0 0 4px var(--violet),0 0 0 8px rgba(255,178,63,.35),0 16px 40px rgba(0,0,0,.6)}
+
+/* beweging */
+.tl.slidein{animation:slidein .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes slidein{from{opacity:0;transform:translateX(120px)}to{opacity:1;transform:none}}
+.mslot{animation:glide .18s cubic-bezier(.2,.8,.2,1) both}
+@keyframes glide{from{opacity:.3;transform:scale(.92)}to{opacity:1;transform:none}}
+.stamp{animation:stamp .3s cubic-bezier(.3,1.5,.6,1) both}
+@keyframes stamp{from{transform:translateX(-50%) rotate(-8deg) scale(1.8);opacity:0}to{transform:translateX(-50%) rotate(-8deg) scale(1);opacity:1}}
+.gap .tok{animation:tokdrop .25s cubic-bezier(.3,1.4,.6,1) both}
+@keyframes tokdrop{from{transform:translate(-50%,-160%);opacity:0}to{transform:translate(-50%,-50%);opacity:1}}
+.flipwrap.flown{animation:flown .1s linear 2.1s both}
+@keyframes flown{to{opacity:0}}
+.flylayer{position:absolute;inset:0;pointer-events:none;z-index:30}
+.flyx{position:absolute;animation:flyx .8s cubic-bezier(.45,0,.55,1) both}
+.flyy{animation:flyy .8s linear both;transform-origin:50% 50%}
+@keyframes flyx{to{transform:translateX(var(--dx))}}
+@keyframes flyy{0%{transform:translateY(0) scale(1);animation-timing-function:cubic-bezier(.2,.7,.4,1)}35%{transform:translateY(-140px) scale(.8);animation-timing-function:cubic-bezier(.6,0,.8,.4)}100%{transform:translateY(var(--dy)) scale(.2);opacity:.4}}
+.confetti i{animation-iteration-count:1;animation-fill-mode:both;opacity:.95}
+.namein{animation:namein .7s cubic-bezier(.2,.8,.2,1) .2s both}
+@keyframes namein{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+.ring .t.pulse{animation:tpulse .2s ease-out}
+
+/* reacties op de tv */
+.seat .seatemo{position:absolute;right:-10px;top:-24px;font-size:38px;animation:floatup 2s ease-out both}
+.g10{position:relative}
+.g10 .rowemo{position:absolute;right:14px;top:-18px;font-size:38px;animation:floatup 2s ease-out both}
+.specreact{position:absolute;left:44px;bottom:160px;display:flex;flex-direction:column;gap:8px;z-index:20}
+.specreact .emoin{background:var(--pruim);border-radius:999px;padding:6px 16px;font-size:28px;font-weight:700;animation:floatup 2s ease-out both}
+
+/* lobby en uitleg */
+.advice{text-align:center;margin-top:34px;font-size:30px;color:var(--amber);font-weight:700}
+.pill .pillsub{color:var(--gedempt);font-weight:600}
+.tvclick{font-size:26px;padding:12px 24px;opacity:.75}
+.restext{font-size:34px;color:var(--gedempt);font-weight:700}
+.restext.small{font-size:28px;font-weight:600}
+.appnote{position:absolute;left:44px;top:8px;font-size:20px;color:var(--gedempt);font-weight:600;z-index:45}
+
+/* eindoverzicht */
+.overview{position:absolute;inset:0;padding:60px 90px}
+.ovhead{text-align:center}
+.ovhead .sub{font-size:32px;color:var(--gedempt);font-weight:600;margin-top:12px}
+.ovgrid{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:44px}
+.ranks{display:flex;flex-direction:column;gap:10px}
+.rk{display:flex;align-items:center;gap:18px;background:var(--pruim);border-radius:16px;height:66px;padding:0 20px;font-size:30px;border:3px solid transparent}
+.rk.lead{border-color:var(--amber)}
+.rk .pos{width:40px;text-align:right;color:var(--gedempt);font-weight:700}
+.rk .av{width:44px;height:44px;font-size:22px}
+.rk b{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk .tk{width:80px;text-align:right;color:var(--gedempt)}
+.prizes{display:flex;flex-direction:column;gap:16px}
+.prize{display:flex;align-items:center;gap:22px;background:var(--pruim);border-radius:20px;padding:18px 24px}
+.prize.none{opacity:.5}
+.prize .pi{font-size:56px;width:70px;text-align:center}
+.prize .pt{font-size:36px;font-weight:700}
+.prize .pw{font-size:28px;color:var(--gedempt);font-weight:600;margin-top:2px}
+.skipped{font-size:24px;color:var(--gedempt);line-height:1.4;max-height:100px;overflow:hidden}
+.skipped b{color:var(--creme)}
+.ovhost{font-size:28px;color:var(--gedempt);font-weight:600}
+.ovhost b{color:var(--amber)}
+
+/* storing, apparaat kiezen, "Is dit Sanne?" */
+.devlist{display:flex;flex-direction:column;gap:14px;margin-top:26px;align-items:center}
+.devlist p{font-size:28px}
+.reclaimbox{position:absolute;left:50%;bottom:160px;transform:translateX(-50%);display:flex;align-items:center;gap:22px;background:var(--pruim);border:3px solid var(--amber);border-radius:22px;padding:20px 28px;z-index:55;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.reclaimbox b{display:block;font-size:36px}
+.reclaimbox span{display:block;font-size:24px;color:var(--gedempt);font-weight:600;max-width:760px}
+.reclaimbox .btn-tv{padding:14px 30px}
+
+/* ---- telefoon ---- */
+.react button{flex:1;height:56px;border-radius:14px;background:var(--pruim);display:grid;place-items:center;font-size:28px;transition:transform .1s}
+.react button:active{transform:scale(.92)}
+.react button.cool{opacity:.4}
+.yearwheel{display:flex;align-items:center;gap:6px;background:var(--pruim);border-radius:16px;padding:6px}
+.yearwheel button{flex:0 0 52px;height:52px;border-radius:12px;background:var(--pruim2);font:700 20px var(--disp)}
+.yearwheel .yw{flex:1;text-align:center;font-size:34px;font-weight:700;color:var(--amber)}
+.yearwheel .yw.unset{color:var(--gedempt);font-size:22px}
+.toggle.forced{opacity:.85}
+.latebox{background:var(--pruim);border-left:5px solid var(--amber);border-radius:12px;padding:12px 14px;font-size:16px;font-weight:600;line-height:1.35;margin-bottom:14px}
+.specbadge{display:inline-block;background:var(--pruim2);border-radius:999px;padding:4px 12px;font-size:15px;font-weight:700;color:var(--gedempt);margin-bottom:8px}
+.guessres{margin-top:16px;font-size:20px;font-weight:800;color:var(--gedempt);background:var(--pruim);border-radius:999px;padding:8px 18px}
+.guessres.ok{color:var(--inkt);background:#FFD23F}
+.reclaimp{display:flex;align-items:center;gap:8px;background:var(--pruim2);border-bottom:3px solid var(--amber);padding:10px 14px;flex:0 0 auto}
+.reclaimp > div{flex:1;min-width:0}
+.reclaimp b{display:block;font-size:17px}
+.reclaimp span{display:block;font-size:14px;color:var(--gedempt);font-weight:600}
+.votelbl{flex:0 0 70px;font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pgap.ownv::before{border:2px dashed var(--amber);background:rgba(122,92,255,.1)}
+.pgap.both::before{border:3px solid #FFD23F;background:rgba(255,178,63,.14)}
+.pgap.guess span,.pgap.both span{font-weight:800}
+.phone .pgap.own:not(.locked){cursor:pointer}
+.mpbadge{background:var(--rood);color:#fff;font:700 16px var(--disp);padding:4px 12px;border-radius:999px;margin-bottom:14px}
+.phone.flash{animation:flash 1s ease-out}
+@keyframes flash{0%{filter:brightness(1.35)}100%{filter:none}}
+.coins .coin.jump{animation:coinjump .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes coinjump{0%{transform:translateY(-14px) scale(1.4)}100%{transform:none}}
+.pdelta{position:absolute;right:0;top:-14px;font:700 15px var(--disp);animation:riseup2 .9s ease-out both;pointer-events:none}
+.pdelta.up{color:var(--mint)}.pdelta.down{color:var(--rood)}
+
+/* "minder beweging": vliegen en schuiven worden korte fades (CONCEPT 4.2) */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  .tv .flyx,.tv .flyy{animation:none !important}
+  .tv .flylayer{animation:rmfadeout .4s ease both !important}
+  .tv .flipper{animation:none !important;transform:rotateY(180deg)}
+  .tv .flipwrap .flipper > .back{animation:rmfade .3s ease 1.2s both !important}
+  .tv .flipwrap .flipper > .mystery{animation:rmfadeout .3s ease 1.2s both !important}
+  .tv .tl.slidein,.tv .mslot,.tv .dealcard,.tv .gap .tok,.tv .stamp,.tv .namein{animation:rmfade .25s ease both !important}
+  .tv .result.pop,.tv .reveal-sub,.tv .tokmark{animation:rmfade .25s ease 1.5s both !important}
+  .tv .flipwrap.drop,.tv .flipwrap.flown{animation:rmfadeout .3s ease 2.2s both !important}
+  .tv .confetti{display:none}
+  .chip .emo,.seat .seatemo,.g10 .rowemo,.specreact .emoin,.chip .plusone,.tokdelta,.pdelta{animation:rmfadeinout 2s ease both !important}
+  .coinfly{display:none}
+}
+@keyframes rmfade{from{opacity:0}to{opacity:1}}
+@keyframes rmfadeout{from{opacity:1}to{opacity:0}}
+@keyframes rmfadeinout{0%{opacity:0}15%{opacity:1}80%{opacity:1}100%{opacity:0}}
+.sametok{position:absolute;bottom:-56px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;background:var(--violet);border-radius:999px;padding:4px 12px 4px 4px;font-size:20px;font-weight:800;white-space:nowrap;animation:tokdrop2 .25s cubic-bezier(.3,1.4,.6,1) both}
+.sametok .av{box-shadow:0 0 0 3px var(--violet)}
+@keyframes tokdrop2{from{transform:translate(-50%,-80px);opacity:0}to{transform:translateX(-50%);opacity:1}}
+.ocard .btns .btn-tv{white-space:nowrap}
+.ocard{width:auto;min-width:1000px;max-width:1500px}

@@ -14,6 +14,7 @@ function tenPlayerState(now: number): GameState {
   const ev = (e: Record<string, unknown>) => (s = apply(s, { now, ...e } as GameEvent).state);
   NAMES.forEach((n, i) => ev({ type: 'join', playerId: `p${i}`, secret: 'x', actionId: `j${i}`, name: n, color: PLAYER_COLORS[i].hex }));
   ev({ type: 'start', playerId: 'p0', secret: 'x', actionId: 'st' });
+  ev({ type: 'understood', playerId: 'p0', secret: 'x', actionId: 'un' });
   // Geef iedereen extra kaarten uit de stapel (gesorteerd), actieve speler 9.
   const st = structuredClone(s);
   const pool = [...st.deck];

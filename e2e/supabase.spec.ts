@@ -34,6 +34,7 @@ test('tv en 2 telefoons via Supabase: aanmelden, beurt, plaatsen live', async ({
   await expect(p3.getByTestId('naam')).toBeVisible({ timeout: 15_000 });
 
   await phones[0].getByTestId('start').click();
+  await phones[0].getByTestId('begrepen').click();
   await expect(tv.locator('[data-phase="deal"]')).toBeVisible({ timeout: 10_000 });
   const st = () => tv.evaluate(() => (window as unknown as { __tt: () => { phase: string; turn: { playerId: string; slot: number | null } | null; players: { id: string }[] } }).__tt());
   await expect.poll(async () => (await st()).phase, { timeout: 15_000 }).toBe('turnStart');

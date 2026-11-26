@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePhone, useWakeLock, vibrate } from './usePhone';
-import type { PublicPlayer, PublicState } from '../game/public';
-import { GOALS, PLACE_TIMES, PLAYER_COLORS, gapNeighbours } from '../game/rules';
-import type { Card } from '../game/types';
-import { Avatar, PCard, PMystery, Ring, useCountdown } from '../ui/components';
+import type { PublicPlayer, PublicSpectator, PublicState } from '../game/public';
+import { GOALS, LEVELS, LEVEL_NAMES, LEVEL_TOKENS, PLACE_TIMES, PLAYER_COLORS, gapNeighbours } from '../game/rules';
+import type { Card, Level } from '../game/types';
+import { Avatar, PCard, PMystery, ReactBar, Ring, YearWheel, useCountdown } from '../ui/components';
 import { cleanCode } from '../net/messages';
 import { netMode, supabaseConfigured } from '../net/channel';
 
 type Send = ReturnType<typeof usePhone>['send'];
+type Busy = Record<string, boolean | undefined>;
+type Common = Omit<Parameters<typeof Shell>[0], 'children' | 'act'>;
 
 // ---------------- schil ----------------
 
@@ -25,6 +27,7 @@ function Shell({
   onGear,
   sheet,
   frame,
+  banner,
 }: {
   me?: PublicPlayer | null;
   all?: PublicPlayer[];
@@ -39,6 +42,8 @@ function Shell({
   onGear?: () => void;
   sheet?: ReactNode;
   frame?: string;
+  /** Bovenaan, bv. "Is dit Sanne?" voor de host. */
+  banner?: ReactNode;
 }) {
   return (
     <div className="phone app" style={style}>
@@ -58,11 +63,7 @@ function Shell({
             <div className="cnt num">
               {me.cards.length}/{goal}
             </div>
-            <div className="coins" data-testid="mijn-tokens" data-tokens={me.tokens}>
-              {Array.from({ length: me.tokens }, (_, i) => (
-                <i key={i} className="coin" />
-              ))}
-            </div>
+            <Coins n={me.tokens} />
           </button>
           {onGear && (
             <button className="gear" onClick={onGear} aria-label="Hostmenu" data-testid="tandwiel" style={{ width: 48, height: 48 }}>
@@ -71,6 +72,7 @@ function Shell({
           )}
         </div>
       )}
+      {banner}
       <div className="pbody">{children}</div>
       {act && <div className="pact">{act}</div>}
       {sheet}
@@ -78,6 +80,29 @@ function Shell({
         <div className="toast" role="status" style={act ? undefined : { bottom: 24 }}>
           {toast}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Munten in de bovenbalk; bij verandering springt de munt met "+1"/"−1" (CONCEPT 4.4). */
+function Coins({ n }: { n: number }) {
+  const prev = useRef(n);
+  const [delta, setDelta] = useState<{ d: number; k: number }>({ d: 0, k: 0 });
+  useEffect(() => {
+    const d = n - prev.current;
+    prev.current = n;
+    if (d) setDelta((x) => ({ d, k: x.k + 1 }));
+  }, [n]);
+  return (
+    <div className="coins" data-testid="mijn-tokens" data-tokens={n} style={{ position: 'relative' }}>
+      {Array.from({ length: n }, (_, i) => (
+        <i key={delta.d > 0 && i === n - 1 ? `j${delta.k}` : i} className={`coin ${delta.d > 0 && i === n - 1 ? 'jump' : ''}`} />
+      ))}
+      {delta.d !== 0 && (
+        <b key={delta.k} className={`pdelta ${delta.d > 0 ? 'up' : 'down'}`} aria-hidden="true">
+          {delta.d > 0 ? `+${delta.d}` : `−${-delta.d}`}
+        </b>
       )}
     </div>
   );
@@ -100,6 +125,7 @@ function PhoneTimeline({
   ownLabel,
   scrollToSlot,
   marks,
+  guess,
 }: {
   cards: Card[];
   slot: number | null;
@@ -109,15 +135,19 @@ function PhoneTimeline({
   scrollToSlot?: boolean;
   /** Labels in gaten (bijv. "🟣 Mila steelt hier"). */
   marks?: Record<number, string>;
+  /** Meegokken: eigen gok (gele stippelrand "jouw gok"). Dan is `onPick` de gok-tik. */
+  guess?: number | null;
 }) {
   const refs = useRef<(HTMLDivElement | null)[]>([]);
   useEffect(() => {
     if (scrollToSlot && slot !== null) refs.current[slot]?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }, [slot, scrollToSlot]);
   const years = cards.map((c) => c.year);
+  const guessing = guess !== undefined;
   const out: ReactNode[] = [];
   for (let g = 0; g <= cards.length; g++) {
-    if (slot === g && onPick) {
+    const isGuess = guessing && guess === g;
+    if (!guessing && slot === g && onPick) {
       out.push(
         <div key={`g${g}`} ref={(el) => void (refs.current[g] = el)}>
           <PMystery text={mysteryText ?? 'Dit nummer'} onClick={() => onPick(null)} />
@@ -125,8 +155,15 @@ function PhoneTimeline({
       );
     } else if (slot === g && ownLabel) {
       out.push(
-        <div key={`g${g}`} className="pgap own locked" ref={(el) => void (refs.current[g] = el)}>
-          <span>{ownLabel}</span>
+        <div
+          key={`g${g}`}
+          className={`pgap own ${guessing ? '' : 'locked'} ${isGuess ? 'both' : ''}`}
+          ref={(el) => void (refs.current[g] = el)}
+          role={guessing ? 'button' : undefined}
+          data-testid={guessing ? `guess-gap-${g}` : undefined}
+          onClick={guessing && onPick ? () => onPick(isGuess ? null : g) : undefined}
+        >
+          <span>{isGuess ? `${ownLabel} · jouw gok ✓` : ownLabel}</span>
         </div>,
       );
     } else {
@@ -134,13 +171,13 @@ function PhoneTimeline({
         <div
           key={`g${g}`}
           ref={(el) => void (refs.current[g] = el)}
-          className={`pgap ${onPick ? '' : 'locked'} ${marks?.[g] ? 'taken' : ''}`}
+          className={`pgap ${onPick ? '' : 'locked'} ${marks?.[g] ? 'taken' : ''} ${isGuess ? 'guess' : ''}`}
           role={onPick ? 'button' : undefined}
           aria-label={onPick ? `Plek ${rangeLabel(years, g)}` : undefined}
-          data-testid={onPick ? `gap-${g}` : undefined}
-          onClick={onPick ? () => onPick(g) : undefined}
+          data-testid={onPick ? (guessing ? `guess-gap-${g}` : `gap-${g}`) : undefined}
+          onClick={onPick ? () => onPick(guessing && isGuess ? null : g) : undefined}
         >
-          <span>{marks?.[g] ?? (onPick ? 'hier?' : '')}</span>
+          <span>{isGuess ? 'jouw gok' : marks?.[g] ?? (onPick ? 'hier?' : '')}</span>
         </div>,
       );
     }
@@ -149,7 +186,7 @@ function PhoneTimeline({
   return <div className="ptl">{out}</div>;
 }
 
-// ---------------- schermen ----------------
+// ---------------- aanmelden ----------------
 
 function CodeEntry({ initial, onJoin }: { initial: string | null; onJoin: (code: string) => Promise<boolean> }) {
   const [code, setCode] = useState(initial ?? '');
@@ -162,7 +199,7 @@ function CodeEntry({ initial, onJoin }: { initial: string | null; onJoin: (code:
     setErr(null);
     const ok = await onJoin(code);
     setBusy(false);
-    if (!ok) setErr('Code niet gevonden. Klopt hij met de tv? Instappen met de code kan alleen in de lobby.');
+    if (!ok) setErr('Code niet gevonden. Klopt hij met de tv? Instappen met de code kan alleen in de lobby; scan anders de QR-code.');
   };
   return (
     <Shell
@@ -208,46 +245,109 @@ function CodeEntry({ initial, onJoin }: { initial: string | null; onJoin: (code:
   );
 }
 
-function NameColor({ pub, send, busy, toast }: { pub: PublicState | null; send: Send; busy: boolean; toast: string | null }) {
+function NameColor({
+  pub,
+  send,
+  busy,
+  toast,
+  myId,
+}: {
+  pub: PublicState | null;
+  send: Send;
+  busy: boolean;
+  toast: string | null;
+  myId: string;
+}) {
   const [name, setName] = useState(() => localStorage.getItem('tt:name') ?? '');
+  const [reclaim, setReclaim] = useState(false);
   const taken = new Set(pub?.players.map((p) => p.color) ?? []);
   const free = PLAYER_COLORS.filter((c) => !taken.has(c.hex));
   const [color, setColor] = useState<string | null>(null);
-  const chosen = color && !taken.has(color) ? color : free[0]?.hex ?? null;
-  const ok = name.trim().length > 0 && chosen && pub?.phase === 'lobby';
+  const chosen = color && !taken.has(color) ? color : free[0]?.hex ?? PLAYER_COLORS[0].hex;
+  const inLobby = pub?.phase === 'lobby' || pub?.phase === 'explain';
   const full = (pub?.players.length ?? 0) >= 10;
+  const lateOk = Boolean(pub && !inLobby && pub.phase !== 'winner' && pub.round <= 2 && !full);
+  const spectate = Boolean(pub && !inLobby && !lateOk);
+  const ok = name.trim().length > 0 && Boolean(pub) && (!inLobby || !full);
+  const pending = pub?.reclaims.find((r) => r.id === myId);
+  if (pending && pub) {
+    const who = pub.players.find((p) => p.id === pending.target);
+    return (
+      <Shell toast={toast}>
+        <div className="full" data-testid="reclaim-wacht">
+          <div style={{ fontSize: 52 }}>🔋</div>
+          <div className="ph1" style={{ marginTop: 10 }}>
+            Is dit {who?.name}?
+          </div>
+          <div className="ph2">De host bevestigt het met één tik. Daarna speel je verder met dezelfde kaarten en tokens.</div>
+        </div>
+      </Shell>
+    );
+  }
+  if (reclaim && pub) {
+    return (
+      <Shell
+        toast={toast}
+        act={
+          <button className="pbtn sec" style={{ flex: 1 }} onClick={() => setReclaim(false)}>
+            Terug
+          </button>
+        }
+      >
+        <div className="ph1">Ik speelde al</div>
+        <div className="ph2">Lege accu of andere telefoon? Tik je naam. De host bevestigt.</div>
+        <div className="list" data-testid="ik-speelde-al-lijst">
+          {pub.players.map((p) => (
+            <button key={p.id} className="li" style={{ minHeight: 56, width: '100%', textAlign: 'left' }} onClick={() => send('reclaim', { target: p.id })}>
+              <Avatar p={p} all={pub.players} />
+              {p.name}
+              <span className="r">{p.online ? 'nu online' : 'offline'}</span>
+            </button>
+          ))}
+        </div>
+      </Shell>
+    );
+  }
   return (
     <Shell
-      me={{ id: 'x', name: name.trim() || '?', color: chosen ?? '#FFB23F', cards: [], tokens: 2, online: true }}
+      me={{ id: 'x', name: name.trim() || '?', color: chosen, cards: [], tokens: LEVEL_TOKENS[pub?.settings.level ?? 'original'], online: true }}
       goal={pub?.settings.goal ?? 10}
       toast={toast}
       act={
-        <button
-          className={`pbtn ${ok && !busy && !full ? '' : 'dis'}`}
-          disabled={!ok || busy || full}
-          data-testid="meedoen"
-          onClick={() => {
-            localStorage.setItem('tt:name', name.trim());
-            send('join', { name: name.trim(), color: chosen });
-          }}
-        >
-          {busy ? 'Bezig…' : 'Ik doe mee'}
-        </button>
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            className={`pbtn ${ok && !busy ? '' : 'dis'}`}
+            style={{ flex: '0 0 64px' }}
+            disabled={!ok || busy}
+            data-testid="meedoen"
+            onClick={() => {
+              localStorage.setItem('tt:name', name.trim());
+              send('join', { name: name.trim(), color: chosen });
+            }}
+          >
+            {busy ? 'Bezig…' : spectate ? 'Kijk mee' : inLobby ? 'Ik doe mee' : 'Stap in'}
+          </button>
+          {pub && pub.players.length > 0 && (
+            <button className="pbtn sec" style={{ flex: '0 0 52px', width: '100%' }} onClick={() => setReclaim(true)} data-testid="ik-speelde-al">
+              🔋 Ik speelde al
+            </button>
+          )}
+        </div>
       }
     >
       {!pub ? (
         <div className="ph2" style={{ marginTop: 30, textAlign: 'center' }}>
           Verbinden met de tv…
         </div>
-      ) : pub.phase !== 'lobby' ? (
-        <>
-          <div className="ph1" style={{ marginTop: 6 }}>
-            Het spel is al begonnen
-          </div>
-          <div className="ph2">Later instappen kan in een volgende versie. Kijk lekker mee op de tv!</div>
-        </>
       ) : (
         <>
+          {!inLobby && (
+            <div className="latebox" data-testid={spectate ? 'toeschouwer-uitleg' : 'laat-uitleg'}>
+              {spectate
+                ? 'Het spel is al ver. Je kunt meekijken: stiekem meegokken en reageren. Bij een volgend potje doe je gewoon mee.'
+                : `Het spel is bezig. Je stapt in met 1 startkaart en ${LEVEL_TOKENS[pub.settings.level]} tokens, achteraan in het rondje.`}
+            </div>
+          )}
           <div className="ph1" style={{ marginTop: 6 }}>
             Hoe heet je?
           </div>
@@ -274,13 +374,13 @@ function NameColor({ pub, send, busy, toast }: { pub: PublicState | null; send: 
                 aria-label={c.name + (taken.has(c.hex) ? ' (bezet)' : '')}
                 className={`${chosen === c.hex ? 'sel' : ''} ${taken.has(c.hex) ? 'x' : ''}`}
                 style={{ background: c.hex }}
-                disabled={taken.has(c.hex)}
+                disabled={taken.has(c.hex) && !spectate}
                 onClick={() => setColor(c.hex)}
               />
             ))}
           </div>
           <div className="ph2" style={{ textAlign: 'center', marginTop: 12 }}>
-            {full ? 'Het spel zit vol (10 spelers).' : 'Doorgestreept = al gekozen'}
+            {inLobby && full ? 'Het spel zit vol (10 spelers).' : 'Doorgestreept = al gekozen'}
           </div>
         </>
       )}
@@ -288,7 +388,15 @@ function NameColor({ pub, send, busy, toast }: { pub: PublicState | null; send: 
   );
 }
 
-function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: PublicPlayer; send: Send; busy: Record<string, boolean | undefined>; isHost: boolean }) {
+// ---------------- lobby, uitleg ----------------
+
+const LEVEL_INFO: Record<Level, string> = {
+  original: '2 tokens · goede plek = kaart · titel + artiest = +1 token',
+  pro: '5 tokens · kaart = goede plek + titel + artiest · stelen op zijn plek mag',
+  expert: '3 tokens · kaart = plek + titel + artiest + exact jaar (jaarwiel)',
+};
+
+function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: PublicPlayer; send: Send; busy: Busy; isHost: boolean }) {
   const enough = pub.players.length >= 2;
   return (
     <>
@@ -303,8 +411,27 @@ function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: Public
           </div>
         ))}
       </div>
+      {pub.settings.reactions && (
+        <>
+          <div className="ph2" style={{ marginTop: 16 }}>
+            Stuur iets naar de tv:
+          </div>
+          <ReactBar onReact={(e) => send('react', { emoji: e })} />
+        </>
+      )}
       {isHost && (
         <>
+          <div className="lbl">Niveau</div>
+          <div className="seg" data-testid="niveau">
+            {LEVELS.map((l) => (
+              <button key={l} className={pub.settings.level === l ? 'on' : ''} onClick={() => send('settings', { level: l })}>
+                {LEVEL_NAMES[l]}
+              </button>
+            ))}
+          </div>
+          <div className="ph2" style={{ fontSize: 15 }}>
+            {LEVEL_INFO[pub.settings.level]}
+          </div>
           <div className="lbl">Doel (kaarten om te winnen){pub.players.length >= 8 ? ' · advies: 8' : ''}</div>
           <div className="seg">
             {GOALS.map((g) => (
@@ -321,8 +448,23 @@ function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: Public
               </button>
             ))}
           </div>
+          <div className="lbl">Emoji-reacties op de tv</div>
+          <div className="seg">
+            <button className={pub.settings.reactions ? 'on' : ''} onClick={() => send('settings', { reactions: true })} data-testid="reacties-aan">
+              Aan
+            </button>
+            <button className={!pub.settings.reactions ? 'on' : ''} onClick={() => send('settings', { reactions: false })} data-testid="reacties-uit">
+              Uit
+            </button>
+          </div>
           <div style={{ height: 8 }} />
-          <button className={`pbtn ${enough && !busy.start ? '' : 'dis'}`} style={{ width: '100%', marginTop: 16 }} disabled={!enough || busy.start} onClick={() => send('start')} data-testid="start">
+          <button
+            className={`pbtn ${enough && !busy.start ? '' : 'dis'}`}
+            style={{ width: '100%', marginTop: 16 }}
+            disabled={!enough || busy.start}
+            onClick={() => send('start')}
+            data-testid="start"
+          >
             {busy.start ? 'Bezig…' : enough ? `Start het spel (${pub.players.length} spelers)` : 'Wacht op minstens 2 spelers'}
           </button>
         </>
@@ -331,16 +473,69 @@ function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: Public
   );
 }
 
-function TurnStartMine({ pub, me, offset, send, busy }: { pub: PublicState; me: PublicPlayer; offset: number; send: Send; busy: Record<string, boolean | undefined> }) {
+function explainPhone({ pub, me, send, busy, isHost }: { pub: PublicState; me: PublicPlayer; send: Send; busy: Busy; isHost: boolean }) {
+  const g = pub.settings.goal;
+  const lv = pub.settings.level;
+  const steps = [
+    '1 · Luister naar het nummer op de tv',
+    `2 · Tik waar hij in jouw tijdlijn hoort${lv === 'expert' ? ' en kies het jaar' : ''}`,
+    '3 · Vastzetten. Anderen mogen 10 s stelen',
+    lv === 'original' ? '4 · Titel + artiest hardop goed = +1 token' : '4 · Titel + artiest hardop: verplicht om de kaart te houden',
+    `5 · Eerste met ${g} kaarten wint`,
+  ];
+  const ready = pub.explainReady.includes(me.id);
+  return {
+    body: (
+      <div data-testid="uitleg-telefoon">
+        <div className="ph1">Zo werkt het</div>
+        <div className="ph2">Kijk mee op de tv. Hier nog even op een rij:</div>
+        <div className="list">
+          {steps.map((t) => (
+            <div key={t} className="li" style={{ minHeight: 56 }}>
+              {t}
+            </div>
+          ))}
+        </div>
+        <div className="ph2" style={{ marginTop: 14 }}>
+          Huisregel: <b style={{ color: 'var(--creme)' }}>Shazam = je bent af</b>. Speel gewoon in Safari of Chrome (niet op het beginscherm zetten).
+        </div>
+      </div>
+    ),
+    act:
+      isHost || !ready ? (
+        <button
+          className={`pbtn ${isHost ? '' : 'sec'}`}
+          style={{ flex: 1 }}
+          disabled={busy.understood}
+          onClick={() => send('understood')}
+          data-testid="begrepen"
+        >
+          {isHost ? 'Begrepen, start!' : 'Begrepen'}
+        </button>
+      ) : (
+        <button className="pbtn dis" style={{ flex: 1 }}>
+          ✓ Wacht op de host…
+        </button>
+      ),
+  };
+}
+
+// ---------------- jouw beurt ----------------
+
+function TurnStartMine({ pub, me, offset, send, busy }: { pub: PublicState; me: PublicPlayer; offset: number; send: Send; busy: Busy }) {
   const left = useCountdown(pub.deadline, offset) ?? 0;
   const total = Math.max(left, 6 * pub.settings.tempo);
   const bought = pub.turn?.bought;
   const canBuy = me.tokens >= 3 && !bought;
+  const mp = me.cards.length === pub.settings.goal - 1;
   useEffect(() => vibrate([150, 100, 150]), []);
   return (
-    <div className="phone app amber" style={{ background: 'var(--amber)', color: 'var(--inkt)' }} data-testid="jij-bent">
+    <div className="phone app amber flash" style={{ background: 'var(--amber)', color: 'var(--inkt)' }} data-testid="jij-bent">
       <div className="full" style={{ paddingBottom: 190 }}>
-        <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1 }}>Jij bent!</div>
+        {mp && <div className="mpbadge">MATCH POINT · nog 1 kaart!</div>}
+        <div style={{ fontSize: 64, fontWeight: 900, lineHeight: 1 }} className="disp">
+          Jij bent!
+        </div>
         <div style={{ fontSize: 19, fontWeight: 600, marginTop: 12 }}>
           {bought ? (
             <>
@@ -385,21 +580,7 @@ function TurnStartMine({ pub, me, offset, send, busy }: { pub: PublicState; me: 
   );
 }
 
-function PlacingMine({
-  pub,
-  me,
-  offset,
-  send,
-  busy,
-  common,
-}: {
-  pub: PublicState;
-  me: PublicPlayer;
-  offset: number;
-  send: Send;
-  busy: Record<string, boolean | undefined>;
-  common: Omit<Parameters<typeof Shell>[0], 'children' | 'act'>;
-}) {
+function PlacingMine({ pub, me, offset, send, busy, common }: { pub: PublicState; me: PublicPlayer; offset: number; send: Send; busy: Busy; common: Common }) {
   const serverSlot = pub.turn?.slot ?? null;
   const [slot, setSlot] = useState<number | null>(serverSlot);
   const lastLocal = useRef(0);
@@ -423,39 +604,57 @@ function PlacingMine({
     send('pickSlot', { slot: g });
   };
   const red = left !== null && left <= 10;
+  const lv = pub.settings.level;
+  const forced = lv !== 'original';
   const serverClaim = Boolean(pub.turn?.claim);
   const [claim, setClaim] = useState(serverClaim);
   const lastClaim = useRef(0);
   useEffect(() => {
     if (Date.now() - lastClaim.current > 1200) setClaim(serverClaim);
   }, [serverClaim]);
+  const serverYear = pub.turn?.yearGuess ?? null;
+  const [year, setYear] = useState<number | null>(serverYear);
+  const lastYear = useRef(0);
+  useEffect(() => {
+    if (Date.now() - lastYear.current > 1200) setYear(serverYear);
+  }, [serverYear]);
+  const pickYear = (y: number) => {
+    lastYear.current = Date.now();
+    setYear(y);
+    vibrate(10);
+    send('yearPick', { year: y });
+  };
   const canSkip = me.tokens >= 1 && pub.canSkipSong;
+  const canLock = slot !== null && (lv !== 'expert' || year !== null);
   return (
     <Shell
       {...common}
       act={
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {lv === 'expert' && <YearWheel value={year} onChange={pickYear} />}
           <button
-            className="toggle"
+            className={`toggle ${forced ? 'forced' : ''}`}
             style={{ margin: 0, minHeight: 52, width: '100%' }}
             role="switch"
-            aria-checked={claim}
+            aria-checked={forced || claim}
+            aria-disabled={forced}
             data-testid="claim"
             onClick={() => {
+              if (forced) return;
               lastClaim.current = Date.now();
               setClaim(!claim);
               send('claim', { on: !claim });
             }}
           >
-            🎤 Ik noem titel + artiest (hardop)
-            <div className={`sw ${claim ? '' : 'off'}`} />
+            🎤 {forced ? 'Noem titel + artiest (verplicht)' : 'Ik noem titel + artiest (hardop)'}
+            <div className={`sw ${forced || claim ? '' : 'off'}`} />
           </button>
           <div style={{ display: 'flex', gap: 10 }}>
             <button className={`pbtn sec ${canSkip && !busy.skip ? '' : 'dis'}`} disabled={!canSkip || busy.skip} onClick={() => send('skip')} data-testid="overslaan">
               {busy.skip ? 'Bezig…' : 'Overslaan · 1'}
             </button>
-            <button className={`pbtn ${slot !== null && !busy.lock ? '' : 'dis'}`} disabled={slot === null || busy.lock} onClick={() => send('lock')} data-testid="vastzetten">
-              {busy.lock ? 'Bezig…' : 'Vastzetten'}
+            <button className={`pbtn ${canLock && !busy.lock ? '' : 'dis'}`} disabled={!canLock || busy.lock} onClick={() => send('lock')} data-testid="vastzetten">
+              {busy.lock ? 'Bezig…' : lv === 'expert' && slot !== null && year === null ? 'Kies een jaar' : 'Vastzetten'}
             </button>
           </div>
         </div>
@@ -480,12 +679,74 @@ function PlacingMine({
   );
 }
 
-function Result({ pub, me, active }: { pub: PublicState; me: PublicPlayer; active: PublicPlayer }) {
+// ---------------- andermans beurt: meegokken ----------------
+
+function useGuess(pub: PublicState, myId: string, send: Send) {
+  const [g, setG] = useState<number | null>(null);
+  const lastTap = useRef(0);
+  const turnKey = `${pub.turn?.playerId}:${pub.songsPlayed}`;
+  const key = useRef(turnKey);
+  if (key.current !== turnKey) {
+    key.current = turnKey;
+    if (g !== null) setG(null);
+  }
+  const server = pub.turn?.guessers.includes(myId) ?? false;
+  // Gok verdwenen bij de tv (nieuw nummer na overslaan)? Dan hier ook weg.
+  useEffect(() => {
+    if (!server && g !== null && Date.now() - lastTap.current > 1500) setG(null);
+  }, [server, g]);
+  const pick = (slot: number | null) => {
+    lastTap.current = Date.now();
+    setG(slot);
+    vibrate(10);
+    send('guess', { slot });
+  };
+  return { guess: g, pick };
+}
+
+function OthersTurn({ pub, me, active, send, common, spectator }: { pub: PublicState; me: { id: string }; active: PublicPlayer; send: Send; common: Common; spectator?: boolean }) {
+  const { guess, pick } = useGuess(pub, me.id, send);
+  const placing = pub.phase === 'placing' && !pub.turn?.locked;
+  const bought = pub.lastBuy?.playerId === active.id;
+  const waiting = pub.turn?.waiting;
+  const sub =
+    pub.phase === 'turnStart'
+      ? waiting
+        ? `${active.name} is even offline. We wachten 20 s, daarna slaan we de beurt over.`
+        : bought
+          ? `${active.name} kocht een kaart. Het nummer begint zo.`
+          : 'Het nummer begint zo. Kijk mee op de tv.'
+      : 'Gok stiekem mee: tik waar jij denkt dat het hoort. Telt niet voor de score, wel voor “Beste oor”.';
+  return (
+    <Shell {...common} act={pub.settings.reactions ? <ReactBar onReact={(e) => send('react', { emoji: e })} /> : undefined}>
+      <div data-phase={pub.phase} data-testid={spectator ? 'toeschouwer' : 'andermans-beurt'}>
+        {spectator && <div className="specbadge">👀 Je kijkt mee</div>}
+        <div className="ph1" style={{ color: active.color }}>
+          {active.name} is aan de beurt
+        </div>
+        <div className="ph2">{sub}</div>
+        <PhoneTimeline
+          cards={active.cards}
+          slot={pub.turn?.slot ?? null}
+          ownLabel={`${active.name} legt hier`}
+          guess={placing ? guess : undefined}
+          onPick={placing ? pick : undefined}
+        />
+      </div>
+    </Shell>
+  );
+}
+
+// ---------------- resultaat ----------------
+
+function Result({ pub, me, active }: { pub: PublicState; me: { id: string; color: string; cards: Card[]; tokens: number }; active: PublicPlayer }) {
   const r = pub.reveal!;
   const card: Card = { songId: r.song.id, year: r.song.year, title: r.song.title, artist: r.song.artist };
   const mine = active.id === me.id;
   const mySteal = r.steals.find((x) => x.playerId === me.id);
+  const myGuess = r.guesses.find((x) => x.playerId === me.id);
   const thief = pub.players.find((x) => x.id === r.stolenBy);
+  const cand = pub.players.find((x) => x.id === r.candidate);
   const [l, rr] = r.between;
   const where = l === null ? `vóór ${rr}` : rr === null ? `na ${l}` : l === rr ? `naast ${l}` : `tussen ${l} en ${rr}`;
   useEffect(() => {
@@ -495,14 +756,28 @@ function Result({ pub, me, active }: { pub: PublicState; me: PublicPlayer; activ
   let head: ReactNode;
   let sub = '';
   let foot = '';
-  if (mySteal?.outcome === 'won') {
+  const activeOk = r.placeCorrect && (r.yearCorrect ?? true);
+  if (r.pending) {
+    // Pro/Expert: het bezwaar beslist zo.
+    const meCand = r.candidate === me.id;
+    head = (
+      <>
+        <div style={{ fontSize: 52, color: activeOk || meCand ? 'var(--mint)' : 'var(--rood)' }}>{activeOk || meCand ? '✓' : '✕'}</div>
+        <div style={{ fontSize: 40, fontWeight: 900, color: activeOk || meCand ? 'var(--mint)' : 'var(--rood)', lineHeight: 1 }}>
+          {mine ? (activeOk ? 'Goed gelegd!' : 'MIS!') : meCand ? 'Goed gestolen!' : `${active.name}: ${activeOk ? 'goed gelegd' : 'MIS!'}`}
+        </div>
+      </>
+    );
+    sub = `Het was ${r.song.year}${r.level === 'expert' && r.yearGuess !== null && mine ? ` (jij koos ${r.yearGuess})` : ''}.`;
+    foot = mine || meCand ? 'Nu nog titel + artiest: de anderen mogen 6 s bezwaar maken.' : cand && !activeOk ? `${cand.name} stal op een goede plek. Zo het bezwaar.` : 'Zo het bezwaar over titel + artiest.';
+  } else if (mySteal?.outcome === 'won') {
     head = (
       <>
         <div style={{ fontSize: 52 }}>🎉</div>
         <div style={{ fontSize: 44, fontWeight: 900, color: me.color, lineHeight: 1.05 }}>Jij stal ’m!</div>
       </>
     );
-    sub = '+1 kaart · je token is ingeleverd';
+    sub = r.level === 'original' ? '+1 kaart · je token is ingeleverd' : '+1 kaart · je token krijg je terug';
     foot = `Nu ${me.cards.length} van ${pub.settings.goal} · nog ${me.tokens} ${me.tokens === 1 ? 'token' : 'tokens'}`;
   } else if (mySteal) {
     const refund = mySteal.outcome === 'refund';
@@ -527,25 +802,29 @@ function Result({ pub, me, active }: { pub: PublicState; me: PublicPlayer; activ
     );
     sub = `+1 kaart · nu ${r.cardsAfter} van ${pub.settings.goal}`;
     foot = mine
-      ? r.claim
+      ? r.claim && r.level === 'original'
         ? 'Even afwachten of iemand bezwaar maakt tegen je titel + artiest…'
         : `Je hebt nu ${r.cardsAfter} kaarten.`
       : `Jij hebt ${me.cards.length} van ${pub.settings.goal} kaarten.`;
   } else {
+    const yearMiss = r.level === 'expert' && r.placeCorrect && r.yearCorrect === false;
     head = (
       <>
         <div style={{ fontSize: 52, color: 'var(--rood)' }}>✕</div>
-        <div style={{ fontSize: mine ? 52 : 40, fontWeight: 900, color: 'var(--rood)', lineHeight: 1 }}>{mine ? 'MIS!' : `${active.name}: MIS!`}</div>
+        <div style={{ fontSize: mine ? 52 : 40, fontWeight: 900, color: 'var(--rood)', lineHeight: 1 }}>
+          {mine ? (yearMiss ? 'JAAR MIS!' : 'MIS!') : `${active.name}: MIS!`}
+        </div>
       </>
     );
-    sub = `${r.song.year} hoorde ${where}`;
+    sub = yearMiss ? `Plek goed, maar het was ${r.song.year} (niet ${r.yearGuess}).` : `${r.song.year} hoorde ${where}`;
     foot = mine
       ? `${thief ? `${thief.name} stal hem. ` : 'De kaart gaat weg. '}Je hebt nog ${me.cards.length} kaarten en ${me.tokens} ${me.tokens === 1 ? 'token' : 'tokens'}.`
       : thief
         ? `${thief.name} stal hem!`
         : `Jij hebt ${me.cards.length} van ${pub.settings.goal} kaarten.`;
   }
-  const tid = mySteal ? `resultaat-steal-${mySteal.outcome}` : r.correct ? 'resultaat-goed' : 'resultaat-mis';
+  const tid = r.pending ? 'resultaat-wacht' : mySteal ? `resultaat-steal-${mySteal.outcome}` : r.correct ? 'resultaat-goed' : 'resultaat-mis';
+  const okCls = r.correct || mySteal?.outcome === 'won' ? 'good' : !r.pending && !thief ? 'bad' : '';
   return (
     <div className="full" style={{ justifyContent: 'flex-start', paddingTop: 40 }} data-testid={tid}>
       {head}
@@ -553,36 +832,29 @@ function Result({ pub, me, active }: { pub: PublicState; me: PublicPlayer; activ
         {sub}
       </div>
       <div style={{ width: '100%', marginTop: 28 }}>
-        <PCard c={card} cls={r.correct || mySteal?.outcome === 'won' ? 'good' : ''} />
+        <PCard c={card} cls={okCls} />
       </div>
       <div className="ph2" style={{ marginTop: 22 }}>
         {foot}
       </div>
+      {myGuess && (
+        <div className={`guessres ${myGuess.correct ? 'ok' : ''}`} data-testid={myGuess.correct ? 'gok-goed' : 'gok-mis'}>
+          {myGuess.correct ? 'Jij zat goed 👂' : 'Je gok zat ernaast'}
+        </div>
+      )}
     </div>
   );
 }
 
-function StealView({
-  pub,
-  me,
-  active,
-  offset,
-  send,
-  busy,
-  common,
-}: {
-  pub: PublicState;
-  me: PublicPlayer;
-  active: PublicPlayer;
-  offset: number;
-  send: Send;
-  busy: Record<string, boolean | undefined>;
-  common: Omit<Parameters<typeof Shell>[0], 'children' | 'act'>;
-}) {
+// ---------------- stelen ----------------
+
+function StealView({ pub, me, active, offset, send, busy, common }: { pub: PublicState; me: PublicPlayer; active: PublicPlayer; offset: number; send: Send; busy: Busy; common: Common }) {
   const t = pub.turn!;
+  const lv = pub.settings.level;
   const left = useCountdown(pub.deadline, offset) ?? 0;
   const total = 10 * pub.settings.tempo;
   const [sel, setSel] = useState<number | null>(null);
+  const [year, setYear] = useState<number | null>(null);
   const years = active.cards.map((c) => c.year);
   const myStealSlot = t.steals.find((x) => x.playerId === me.id)?.slot ?? null;
   const passed = t.passed.includes(me.id);
@@ -607,18 +879,21 @@ function StealView({
     let cls = 'v';
     let label = `vrij · ${rangeLabel(years, g)}`;
     let tappable = canAct;
-    if (own) {
-      cls = 'own';
-      label = `🔒 ${active.name} legde hier`;
-      tappable = false;
-    } else if (tk) {
+    if (tk) {
       const who = pub.players.find((x) => x.id === tk.playerId);
       cls = tk.playerId === me.id ? 'sel' : 'taken';
       label = tk.playerId === me.id ? `✓ jij steelt hier: ${rangeLabel(years, g)}` : `bezet door ${who?.name ?? '?'}`;
       tappable = false;
+    } else if (own && lv === 'original') {
+      cls = 'own';
+      label = `🔒 ${active.name} legde hier`;
+      tappable = false;
     } else if (sel === g) {
       cls = 'sel';
-      label = `✓ jij: ${rangeLabel(years, g)}`;
+      label = `✓ jij: ${rangeLabel(years, g)}${own ? ` (zelfde plek als ${active.name})` : ''}`;
+    } else if (own) {
+      cls = 'v ownv';
+      label = `${active.name} legde hier · ook stelen mag`;
     } else if (!canAct) {
       cls = '';
       label = rangeLabel(years, g);
@@ -640,6 +915,7 @@ function StealView({
   let line: ReactNode = (
     <>
       {active.name} zette vast · nog <b className="num" style={{ color: 'var(--creme)' }}>{left} s</b> · kost 1 token
+      {lv !== 'original' && ' · zeg titel + artiest hardop'}
     </>
   );
   if (myStealSlot !== null) {
@@ -650,30 +926,35 @@ function StealView({
     line = 'Wachten op de onthulling…';
   } else if (me.tokens < 1) {
     title = `${active.name} zette vast`;
-    line = '0 tokens · verdien er een op je beurt (titel + artiest goed)';
+    line = lv === 'original' ? '0 tokens · verdien er een op je beurt (titel + artiest goed)' : '0 tokens · stelen kan nu niet';
   } else if (!eligible) {
     title = `${active.name} zette vast`;
     line = 'Wachten op de onthulling…';
   }
+  const needYear = lv === 'expert';
+  const ready = sel !== null && (!needYear || year !== null);
   return (
     <Shell
       {...common}
       frame={canAct ? 'var(--violet)' : undefined}
       act={
         canAct ? (
-          <>
-            <button className="pbtn sec" onClick={() => send('pass')} disabled={busy.pass} data-testid="pas">
-              Pas
-            </button>
-            <button
-              className={`pbtn ${sel !== null && !busy.steal ? 'v' : 'dis'}`}
-              disabled={sel === null || busy.steal}
-              onClick={() => sel !== null && send('steal', { slot: sel })}
-              data-testid="steel"
-            >
-              {busy.steal ? 'Bezig…' : 'STEEL hier · 1 token'}
-            </button>
-          </>
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {needYear && sel !== null && <YearWheel value={year} onChange={setYear} />}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="pbtn sec" onClick={() => send('pass')} disabled={busy.pass} data-testid="pas">
+                Pas
+              </button>
+              <button
+                className={`pbtn ${ready && !busy.steal ? 'v' : 'dis'}`}
+                disabled={!ready || busy.steal}
+                onClick={() => sel !== null && send('steal', needYear ? { slot: sel, year } : { slot: sel })}
+                data-testid="steel"
+              >
+                {busy.steal ? 'Bezig…' : needYear && sel !== null && year === null ? 'Kies een jaar' : 'STEEL hier · 1 token'}
+              </button>
+            </div>
+          </div>
         ) : undefined
       }
     >
@@ -691,14 +972,9 @@ function StealView({
   );
 }
 
-function ObjectionPhone(props: {
-  pub: PublicState;
-  me: PublicPlayer;
-  offset: number;
-  send: Send;
-  busy: Record<string, boolean | undefined>;
-  common: Omit<Parameters<typeof Shell>[0], 'children' | 'act'>;
-}) {
+// ---------------- bezwaar ----------------
+
+function ObjectionPhone(props: { pub: PublicState; me: PublicPlayer; offset: number; send: Send; busy: Busy; common: Common }) {
   const { body, act } = useObjection(props);
   return (
     <Shell {...props.common} act={act ?? undefined}>
@@ -707,46 +983,58 @@ function ObjectionPhone(props: {
   );
 }
 
-function useObjection({ pub, me, offset, send, busy }: { pub: PublicState; me: PublicPlayer; offset: number; send: Send; busy: Record<string, boolean | undefined> }) {
+function useObjection({ pub, me, offset, send, busy }: { pub: PublicState; me: PublicPlayer; offset: number; send: Send; busy: Busy }) {
   const o = pub.objection!;
   const r = pub.reveal!;
   const p = pub.players.find((x) => x.id === o.playerId)!;
+  const ex = o.extra ? pub.players.find((x) => x.id === o.extra!.playerId) : null;
   const left = useCountdown(pub.deadline, offset) ?? 0;
   const card: Card = { songId: r.song.id, year: r.song.year, title: r.song.title, artist: r.song.artist };
-  const myVote = o.votes[me.id];
-  const canVote = o.open && o.eligible.includes(me.id) && !myVote;
-  const fout = Object.values(o.votes).filter((v) => v === 'fout').length;
+  const keep = o.mode === 'keep';
+  const rows = [
+    { id: o.playerId, name: p.name, eligible: o.eligible, votes: o.votes, target: undefined as string | undefined },
+    ...(o.extra && ex ? [{ id: ex.id, name: ex.name, eligible: o.extra.eligible, votes: o.extra.votes, target: ex.id }] : []),
+  ];
+  const canVoteRow = (row: (typeof rows)[number]) => o.open && row.eligible.includes(me.id) && !row.votes[me.id];
+  const anyVote = rows.some(canVoteRow);
   if (o.result) {
     const res = o.result;
+    const winner = keep ? (r.correct ? p : r.stolenBy ? pub.players.find((x) => x.id === r.stolenBy) : null) : null;
+    const ok = keep ? Boolean(winner) : res.ok;
+    const fout = Object.values(o.votes).filter((v) => v === 'fout').length;
+    let txt: string;
+    if (keep) txt = winner ? (winner.id === me.id ? 'De kaart is voor jou!' : `${winner.name} krijgt de kaart`) : 'De kaart gaat weg.';
+    else
+      txt =
+        p.id === me.id
+          ? res.ok
+            ? res.awarded
+              ? '+1 token voor jou!'
+              : 'Goed, maar je zit al op 5 tokens (max).'
+            : 'Geen token deze keer.'
+          : res.ok
+            ? `${p.name} ${res.awarded ? 'krijgt +1 token' : 'zat al op 5 tokens'}`
+            : `${fout} ${fout === 1 ? 'bezwaar' : 'bezwaren'}: geen token voor ${p.name}`;
     return {
       body: (
         <div className="full" style={{ justifyContent: 'flex-start', paddingTop: 40 }} data-testid="bezwaar-uitslag">
-          <div style={{ fontSize: 52, color: res.ok ? 'var(--mint)' : 'var(--rood)' }}>{res.ok ? '✓' : '✕'}</div>
-          <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.1, color: res.ok ? 'var(--mint)' : 'var(--rood)' }}>
-            {res.ok ? 'Goedgekeurd' : 'Afgekeurd'}
-          </div>
+          <div style={{ fontSize: 52, color: ok ? 'var(--mint)' : 'var(--rood)' }}>{ok ? '✓' : '✕'}</div>
+          <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.1, color: ok ? 'var(--mint)' : 'var(--rood)' }}>{ok ? 'Goedgekeurd' : 'Afgekeurd'}</div>
           <div className="ph2" style={{ marginTop: 10 }}>
-            {p.id === me.id
-              ? res.ok
-                ? res.awarded
-                  ? '+1 token voor jou!'
-                  : 'Goed, maar je zit al op 5 tokens (max).'
-                : 'Geen token deze keer.'
-              : res.ok
-                ? `${p.name} ${res.awarded ? 'krijgt +1 token' : 'zat al op 5 tokens'}`
-                : `${fout} ${fout === 1 ? 'bezwaar' : 'bezwaren'}: geen token voor ${p.name}`}
+            {txt}
           </div>
         </div>
       ),
       act: null,
     };
   }
-  if (p.id === me.id || !canVote) {
+  const subject = rows.some((x) => x.id === me.id);
+  if (!anyVote) {
     return {
       body: (
         <div data-testid="bezwaar-wacht">
-          <div className="ph1">{p.id === me.id ? 'Even afwachten…' : myVote ? `Je tikte: ${myVote === 'fout' ? 'Fout!' : 'Klopt'}` : `Had ${p.name} het goed?`}</div>
-          <div className="ph2">{p.id === me.id ? 'De anderen mogen 6 s bezwaar maken tegen je titel + artiest.' : 'Wachten op de anderen…'}</div>
+          <div className="ph1">{subject ? 'Even afwachten…' : `Had ${rows.map((x) => x.name).join(' en ')} het goed?`}</div>
+          <div className="ph2">{subject ? 'De anderen mogen 6 s bezwaar maken tegen je titel + artiest.' : 'Wachten op de anderen…'}</div>
           <div style={{ marginTop: 14 }}>
             <PCard c={card} />
           </div>
@@ -755,16 +1043,18 @@ function useObjection({ pub, me, offset, send, busy }: { pub: PublicState; me: P
       act: null,
     };
   }
+  const two = rows.length > 1;
   return {
     body: (
       <div data-testid="bezwaar">
-        <div className="ph1">Had {p.name} het goed?</div>
+        <div className="ph1">Had {rows.map((x) => x.name).join(' en ')} het goed?</div>
         <div className="ph2">Het was:</div>
         <div style={{ marginTop: 14 }}>
           <PCard c={card} />
         </div>
         <div className="ph2" style={{ marginTop: 14 }}>
           Alleen tikken als het <b style={{ color: 'var(--creme)' }}>fout</b> was. Niets doen = goed.
+          {keep && ' Bij geen bezwaar houdt hij de kaart.'}
         </div>
         <div className="pbar" style={{ marginTop: 14 }}>
           <i style={{ width: `${Math.min(100, (left / Math.max(1, 6 * pub.settings.tempo)) * 100)}%`, background: 'var(--rood)', transition: 'width .25s linear' }} />
@@ -774,7 +1064,27 @@ function useObjection({ pub, me, offset, send, busy }: { pub: PublicState; me: P
         </div>
       </div>
     ),
-    act: (
+    act: two ? (
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map((row) =>
+          canVoteRow(row) ? (
+            <div key={row.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span className="votelbl">{row.name}</span>
+              <button className="pbtn sec" style={{ height: 56, flex: '0 0 30%' }} onClick={() => send('objection', { verdict: 'klopt', target: row.target })} data-testid={`klopt-${row.name}`}>
+                Klopt
+              </button>
+              <button className="pbtn r" style={{ height: 56 }} onClick={() => send('objection', { verdict: 'fout', target: row.target })} data-testid={`fout-${row.name}`}>
+                Fout!
+              </button>
+            </div>
+          ) : (
+            <div key={row.id} className="ph2" style={{ textAlign: 'center' }}>
+              {row.name}: {row.votes[me.id] ? (row.votes[me.id] === 'fout' ? 'jij tikte Fout!' : 'jij tikte Klopt') : 'jij stemt hier niet'}
+            </div>
+          ),
+        )}
+      </div>
+    ) : (
       <>
         <button className="pbtn sec" onClick={() => send('objection', { verdict: 'klopt' })} disabled={busy.objection} data-testid="klopt">
           Klopt
@@ -786,6 +1096,8 @@ function useObjection({ pub, me, offset, send, busy }: { pub: PublicState; me: P
     ),
   };
 }
+
+// ---------------- vellen ----------------
 
 function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
   return (
@@ -802,17 +1114,18 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
   );
 }
 
-function TokenSheet({ me, onClose }: { me: PublicPlayer; onClose: () => void }) {
+function TokenSheet({ me, level, onClose }: { me: PublicPlayer; level: Level; onClose: () => void }) {
+  const items: [string, string, string][] = [
+    ['⏭', 'Overslaan', '1 token · eigen beurt, vóór vastzetten'],
+    ['🟣', 'Stelen', level === 'original' ? '1 token · in het steelvenster van een ander' : '1 token · gelukt = token terug'],
+    ['🪙', 'Kaart kopen', '3 tokens · alleen bij jouw beurtstart'],
+    level === 'original' ? ['🎤', 'Verdienen', 'titel + artiest hardop goed = +1'] : ['🎤', 'Titel + artiest', `${LEVEL_NAMES[level]}: verplicht om een kaart te houden`],
+  ];
   return (
     <Sheet onClose={onClose}>
       <div className="ph1">Jouw tokens: {me.tokens} van max 5</div>
       <div className="list">
-        {[
-          ['⏭', 'Overslaan', '1 token · eigen beurt, vóór vastzetten'],
-          ['🟣', 'Stelen', '1 token · in het steelvenster van een ander'],
-          ['🪙', 'Kaart kopen', '3 tokens · alleen bij jouw beurtstart'],
-          ['🎤', 'Verdienen', 'titel + artiest hardop goed = +1'],
-        ].map(([i, a, b]) => (
+        {items.map(([i, a, b]) => (
           <div key={a} className="li" style={{ minHeight: 64 }}>
             <span style={{ fontSize: 24 }}>{i}</span>
             <div>
@@ -833,7 +1146,7 @@ function HostSheet({ pub, me, send, onClose }: { pub: PublicState; me: PublicPla
   const [remove, setRemove] = useState(false);
   const [confirm, setConfirm] = useState<string | null>(null);
   const active = pub.players.find((x) => x.id === pub.turn?.playerId);
-  const inGame = !['lobby', 'winner'].includes(pub.phase);
+  const inGame = !['lobby', 'explain', 'winner'].includes(pub.phase);
   const canSkipTurn = ['turnStart', 'placing', 'stealing'].includes(pub.phase) && active;
   const item = (label: string, onClick: () => void, enabled = true, testid?: string) => (
     <button
@@ -853,22 +1166,27 @@ function HostSheet({ pub, me, send, onClose }: { pub: PublicState; me: PublicPla
         <div className="ph1">Speler verwijderen</div>
         <div className="ph2">Zijn of haar kaarten verdwijnen uit het spel.</div>
         <div className="list">
-          {pub.players
-            .filter((x) => x.id !== me.id)
-            .map((x) =>
-              confirm === x.id ? (
-                <div key={x.id} style={{ display: 'flex', gap: 8 }}>
-                  <button className="pbtn r" style={{ flex: 1, height: 56 }} onClick={() => { send('removePlayer', { target: x.id }); onClose(); }}>
-                    Ja, {x.name} eruit
-                  </button>
-                  <button className="pbtn sec" style={{ flex: '0 0 30%', height: 56 }} onClick={() => setConfirm(null)}>
-                    Nee
-                  </button>
-                </div>
-              ) : (
-                item(`👤 ${x.name}`, () => setConfirm(x.id))
-              ),
-            )}
+          {[...pub.players.filter((x) => x.id !== me.id), ...pub.spectators.map((x) => ({ ...x, cards: [], tokens: 0 }))].map((x) =>
+            confirm === x.id ? (
+              <div key={x.id} style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="pbtn r"
+                  style={{ flex: 1, height: 56 }}
+                  onClick={() => {
+                    send('removePlayer', { target: x.id });
+                    onClose();
+                  }}
+                >
+                  Ja, {x.name} eruit
+                </button>
+                <button className="pbtn sec" style={{ flex: '0 0 30%', height: 56 }} onClick={() => setConfirm(null)}>
+                  Nee
+                </button>
+              </div>
+            ) : (
+              item(`👤 ${x.name}${pub.spectators.some((sp) => sp.id === x.id) ? ' (kijkt mee)' : ''}`, () => setConfirm(x.id))
+            ),
+          )}
         </div>
       </Sheet>
     );
@@ -878,16 +1196,68 @@ function HostSheet({ pub, me, send, onClose }: { pub: PublicState; me: PublicPla
       <div className="ph1">Hostmenu</div>
       <div className="ph2">Alleen zichtbaar voor jou (host).</div>
       <div className="list" data-testid="hostmenu">
-        {inGame && item(pub.paused ? '▶ Verder spelen' : '⏸ Pauze', () => { send('pause'); onClose(); }, true, 'pauze')}
-        {inGame && item(`⏭ Beurt van ${active?.name ?? '…'} overslaan`, () => { send('skipTurn'); onClose(); }, Boolean(canSkipTurn), 'beurt-overslaan')}
-        {inGame && item('↩︎ Uitslag omdraaien', () => { send('flipVerdict'); onClose(); }, pub.canFlipVerdict, 'omdraaien')}
-        {inGame && pub.canFlipClaim && item('↩︎ Titel + artiest omdraaien', () => { send('flipClaim'); onClose(); }, true, 'claim-omdraaien')}
-        {inGame && item('🔁 Nummer opnieuw starten', () => { send('restartSong'); onClose(); }, pub.phase === 'placing')}
-        {item('👤 Speler verwijderen…', () => setRemove(true), pub.players.length > 1)}
+        {inGame &&
+          item(
+            pub.paused ? '▶ Verder spelen' : '⏸ Pauze',
+            () => {
+              send('pause');
+              onClose();
+            },
+            true,
+            'pauze',
+          )}
+        {inGame &&
+          item(
+            `⏭ Beurt van ${active?.name ?? '…'} overslaan`,
+            () => {
+              send('skipTurn');
+              onClose();
+            },
+            Boolean(canSkipTurn),
+            'beurt-overslaan',
+          )}
+        {inGame &&
+          item(
+            '↩︎ Uitslag omdraaien',
+            () => {
+              send('flipVerdict');
+              onClose();
+            },
+            pub.canFlipVerdict,
+            'omdraaien',
+          )}
+        {inGame &&
+          pub.canFlipClaim &&
+          item(
+            '↩︎ Titel + artiest omdraaien',
+            () => {
+              send('flipClaim');
+              onClose();
+            },
+            true,
+            'claim-omdraaien',
+          )}
+        {inGame &&
+          item(
+            '🔁 Nummer opnieuw starten',
+            () => {
+              send('restartSong');
+              onClose();
+            },
+            pub.phase === 'placing',
+          )}
+        {item('👤 Speler verwijderen…', () => setRemove(true), pub.players.length > 1 || pub.spectators.length > 0)}
         {inGame &&
           (confirm === 'stop' ? (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="pbtn r" style={{ flex: 1, height: 56 }} onClick={() => { send('stopGame'); onClose(); }}>
+              <button
+                className="pbtn r"
+                style={{ flex: 1, height: 56 }}
+                onClick={() => {
+                  send('stopGame');
+                  onClose();
+                }}
+              >
                 Ja, stoppen
               </button>
               <button className="pbtn sec" style={{ flex: '0 0 30%', height: 56 }} onClick={() => setConfirm(null)}>
@@ -902,21 +1272,46 @@ function HostSheet({ pub, me, send, onClose }: { pub: PublicState; me: PublicPla
   );
 }
 
+/** Host: "Is dit Sanne?" bij "Ik speelde al" (CONCEPT 2.9). */
+function ReclaimBanner({ pub, send }: { pub: PublicState; send: Send }) {
+  const r = pub.reclaims[0];
+  const who = r && pub.players.find((p) => p.id === r.target);
+  if (!r || !who) return null;
+  return (
+    <div className="reclaimp" data-testid="host-reclaim">
+      <div>
+        <b>Is dit {who.name}?</b>
+        <span>Nieuwe telefoon wil verder als {who.name}.</span>
+      </div>
+      <button className="pbtn" style={{ height: 48, flex: '0 0 64px' }} onClick={() => send('confirmReclaim', { requester: r.id, ok: true })} data-testid="reclaim-ja">
+        Ja
+      </button>
+      <button className="pbtn sec" style={{ height: 48, flex: '0 0 64px' }} onClick={() => send('confirmReclaim', { requester: r.id, ok: false })}>
+        Nee
+      </button>
+    </div>
+  );
+}
+
+// ---------------- tussenstand, winnaar ----------------
+
 function turnsUntil(pub: PublicState, meIdx: number): number {
   const n = pub.players.length;
   return (meIdx - pub.turnIndex + n) % n;
 }
 
-function StandingsPhone({ pub, me, hideTitle }: { pub: PublicState; me: PublicPlayer; hideTitle?: boolean }) {
+function StandingsPhone({ pub, me, hideTitle }: { pub: PublicState; me: { id: string }; hideTitle?: boolean }) {
   const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
   const pos = rows.findIndex((p) => p.id === me.id) + 1;
   const next = pub.players[pub.turnIndex];
-  const until = turnsUntil(pub, pub.players.findIndex((p) => p.id === me.id));
+  const meIdx = pub.players.findIndex((p) => p.id === me.id);
+  const until = meIdx >= 0 ? turnsUntil(pub, meIdx) : 0;
   return (
     <>
       {!hideTitle && <div className="ph1">Tussenstand</div>}
       <div className="ph2">
-        Jij staat {pos}e. Volgende beurt: {next?.id === me.id ? 'jij!' : next?.name}.{until > 0 ? ` Jij bent over ${until} ${until === 1 ? 'beurt' : 'beurten'}.` : ''}
+        {pos > 0 ? `Jij staat ${pos}e. ` : ''}Volgende beurt: {next?.id === me.id ? 'jij!' : next?.name}.
+        {until > 0 ? ` Jij bent over ${until} ${until === 1 ? 'beurt' : 'beurten'}.` : ''}
       </div>
       <div className="list">
         {rows.slice(0, 6).map((p, i) => (
@@ -933,12 +1328,13 @@ function StandingsPhone({ pub, me, hideTitle }: { pub: PublicState; me: PublicPl
   );
 }
 
-function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: PublicPlayer; send: Send; isHost: boolean }) {
+function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: { id: string; cards: Card[] }; send: Send; isHost: boolean }) {
   const w = pub.players.find((p) => p.id === pub.winnerId)!;
   const mine = w.id === me.id;
   const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length);
   const pos = rows.findIndex((p) => p.id === me.id) + 1;
-  const prize = pub.awards.find((a) => a.playerId === me.id);
+  const prizes = pub.awards.filter((a) => a.playerId === me.id);
+  const prizeTxt = prizes.map((a) => `${a.icon} ${a.title}`).join(', ');
   useEffect(() => {
     if (mine) vibrate([100, 80, 100, 80, 100]);
   }, [mine]);
@@ -956,6 +1352,7 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: PublicPl
         className="pbtn sec"
         style={mine ? { flex: '0 0 56px', background: 'rgba(0,0,0,.12)', color: 'var(--inkt)' } : { flex: '0 0 56px' }}
         onClick={() => send('lobby')}
+        data-testid="terug-lobby"
       >
         Terug naar lobby
       </button>
@@ -965,23 +1362,25 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: PublicPl
     <div
       className="phone app"
       data-testid={mine ? 'winnaar-ik' : 'winnaar-ander'}
-      style={
-        mine
-          ? { background: 'radial-gradient(500px 500px at 50% 35%,#ffcd73,var(--amber) 55%,#b56a0f)', color: 'var(--inkt)' }
-          : undefined
-      }
+      style={mine ? { background: 'radial-gradient(500px 500px at 50% 35%,#ffcd73,var(--amber) 55%,#b56a0f)', color: 'var(--inkt)' } : undefined}
     >
       <div className="full" style={{ paddingBottom: isHost ? 170 : 30 }}>
         {mine ? (
           <>
             <div style={{ fontSize: 110, lineHeight: 1 }}>👑</div>
-            <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 1.05, marginTop: 10 }}>
+            <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 1.05, marginTop: 10 }} className="disp">
               Jij bent de
               <br />
               Tune Master!
             </div>
             <div style={{ fontSize: 19, fontWeight: 700, marginTop: 14 }}>
-              {me.cards.length} kaarten{prize ? ` · Prijs: ${prize.icon} ${prize.title}` : ''}
+              {me.cards.length} kaarten
+              {prizeTxt ? (
+                <>
+                  <br />
+                  Prijs: {prizeTxt}
+                </>
+              ) : null}
             </div>
           </>
         ) : (
@@ -989,8 +1388,8 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: PublicPl
             <div style={{ fontSize: 70, lineHeight: 1 }}>👑</div>
             <div style={{ fontSize: 40, fontWeight: 900, color: w.color, marginTop: 10 }}>{w.name} wint!</div>
             <div className="ph2" style={{ marginTop: 12, fontSize: 19 }}>
-              Jij werd {pos}e met {me.cards.length} kaarten.
-              {prize ? ` Prijs: ${prize.icon} ${prize.title}.` : ''}
+              {pos > 0 ? `Jij werd ${pos}e met ${me.cards.length} kaarten.` : 'Bedankt voor het meekijken!'}
+              {prizeTxt ? ` Prijs: ${prizeTxt}.` : ''}
             </div>
           </>
         )}
@@ -1005,24 +1404,57 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: PublicPl
   );
 }
 
+// ---------------- toeschouwer ----------------
+
+function SpectatorApp({ pub, sp, send, toast, net, back }: { pub: PublicState; sp: PublicSpectator; send: Send; toast: string | null; net: boolean; back: boolean }) {
+  const active = pub.players.find((x) => x.id === pub.turn?.playerId) ?? null;
+  const me = { id: sp.id, name: sp.name, color: sp.color, cards: [] as Card[], tokens: 0, online: true };
+  const common: Common = { net, back, toast };
+  if (pub.phase === 'winner') return <WinnerPhone pub={pub} me={me} send={send} isHost={false} />;
+  if ((pub.phase === 'turnStart' || pub.phase === 'placing') && active && !pub.turn?.locked)
+    return <OthersTurn pub={pub} me={me} active={active} send={send} common={common} spectator />;
+  let body: ReactNode;
+  if (pub.phase === 'reveal' && pub.reveal && active) body = <Result pub={pub} me={me} active={active} />;
+  else if (pub.phase === 'standings') body = <StandingsPhone pub={pub} me={me} />;
+  else
+    body = (
+      <>
+        <div className="ph1">{active ? `${active.name} is aan de beurt` : 'Kijk mee op de tv'}</div>
+        <div className="ph2">{pub.phase === 'stealing' ? 'De anderen mogen nu stelen…' : 'Zo verder.'}</div>
+      </>
+    );
+  return (
+    <Shell {...common} act={pub.settings.reactions ? <ReactBar onReact={(e) => send('react', { emoji: e })} /> : undefined}>
+      <div data-testid="toeschouwer" data-phase={pub.phase}>
+        <div className="specbadge">👀 Je kijkt mee, {sp.name}</div>
+        {body}
+      </div>
+    </Shell>
+  );
+}
+
 // ---------------- hoofdcomponent ----------------
 
 export default function PhoneApp() {
   const ph = usePhone();
   const { pub, session } = ph;
   const me = useMemo(() => pub?.players.find((p) => p.id === session?.playerId) ?? null, [pub, session]);
+  const sp = useMemo(() => pub?.spectators.find((p) => p.id === session?.playerId) ?? null, [pub, session]);
   const [sheet, setSheet] = useState<'tokens' | 'host' | null>(null);
-  useWakeLock(Boolean(me));
+  useWakeLock(Boolean(me || sp));
 
   if (netMode() === 'supabase' && !supabaseConfigured())
     return (
       <Shell>
-        <div className="ph1" style={{ marginTop: 30 }}>Even geduld</div>
+        <div className="ph1" style={{ marginTop: 30 }}>
+          Even geduld
+        </div>
         <div className="ph2">Deze versie van de site mist nog een instelling, waardoor telefoons de tv niet kunnen bereiken. Zeg het tegen de host.</div>
       </Shell>
     );
   if (!session) return <CodeEntry initial={ph.initialCode} onJoin={ph.joinByCode} />;
-  if (!me) return <NameColor pub={pub} send={ph.send} busy={Boolean(ph.busy.join)} toast={ph.toast} />;
+  if (sp && pub) return <SpectatorApp pub={pub} sp={sp} send={ph.send} toast={ph.toast} net={ph.conn === 'lost'} back={ph.back} />;
+  if (!me) return <NameColor pub={pub} send={ph.send} busy={Boolean(ph.busy.join)} toast={ph.toast} myId={session.playerId} />;
 
   const p = pub!;
   const isHost = p.hostId === me.id;
@@ -1031,11 +1463,11 @@ export default function PhoneApp() {
   const net = ph.conn === 'lost';
   const sheetEl =
     sheet === 'tokens' ? (
-      <TokenSheet me={me} onClose={() => setSheet(null)} />
+      <TokenSheet me={me} level={p.settings.level} onClose={() => setSheet(null)} />
     ) : sheet === 'host' && isHost ? (
       <HostSheet pub={p} me={me} send={ph.send} onClose={() => setSheet(null)} />
     ) : null;
-  const common = {
+  const common: Common = {
     me,
     all: p.players,
     goal: p.settings.goal,
@@ -1045,20 +1477,29 @@ export default function PhoneApp() {
     onTop: () => setSheet('tokens'),
     onGear: isHost ? () => setSheet('host') : undefined,
     sheet: sheetEl,
+    banner: isHost ? <ReclaimBanner pub={p} send={ph.send} /> : undefined,
   };
+  const reacts = p.settings.reactions ? <ReactBar onReact={(e) => ph.send('react', { emoji: e })} /> : null;
 
   if (p.phase === 'winner') return <WinnerPhone pub={p} me={me} send={ph.send} isHost={isHost} />;
   if (p.paused)
     return (
       <Shell {...common}>
         <div data-phase="paused">
-          <div className="ph1">Pauze ☕</div>
-          <div className="ph2">{isHost ? 'Ga verder via ⚙︎ rechtsboven.' : 'De host gaat zo verder.'}</div>
+          <div className="ph1">{p.pausedBy === 'system' ? 'Even wachten 🔌' : 'Pauze ☕'}</div>
+          <div className="ph2">
+            {p.pausedBy === 'system'
+              ? 'De muziek op de tv hapert. De tv lost het op; er gaat niets verloren.'
+              : isHost
+                ? 'Ga verder via ⚙︎ rechtsboven.'
+                : 'De host gaat zo verder.'}
+          </div>
           <StandingsPhone pub={p} me={me} hideTitle />
         </div>
       </Shell>
     );
-  if (p.phase === 'turnStart' && mine && !net && !sheet) return <TurnStartMine pub={p} me={me} offset={ph.offset} send={ph.send} busy={ph.busy} />;
+  if (p.phase === 'turnStart' && mine && !net && !sheet && !p.turn?.waiting)
+    return <TurnStartMine pub={p} me={me} offset={ph.offset} send={ph.send} busy={ph.busy} />;
 
   let body: ReactNode = null;
   let act: ReactNode = null;
@@ -1066,15 +1507,23 @@ export default function PhoneApp() {
     case 'lobby':
       body = <Waiting pub={p} me={me} send={ph.send} busy={ph.busy} isHost={isHost} />;
       break;
+    case 'explain': {
+      const ex = explainPhone({ pub: p, me, send: ph.send, busy: ph.busy, isHost });
+      body = ex.body;
+      act = ex.act;
+      break;
+    }
     case 'deal': {
       const starter = p.players.find((x) => x.id === p.dealInfo?.playerId);
       body = (
         <>
           <div className="ph1">Je startkaart</div>
-          <div className="ph2">Deze ligt open in je tijdlijn. {starter?.id === me.id ? 'Jij hebt de oudste kaart: jij begint!' : `${starter?.name} heeft de oudste kaart en begint.`}</div>
+          <div className="ph2">
+            Deze ligt open in je tijdlijn. {starter?.id === me.id ? 'Jij hebt de oudste kaart: jij begint!' : `${starter?.name} heeft de oudste kaart en begint.`}
+          </div>
           <div style={{ marginTop: 18 }}>{me.cards[0] && <PCard c={me.cards[0]} cls="good" />}</div>
           <div className="ph2" style={{ marginTop: 18 }}>
-            Je hebt 2 tokens. Tik bovenaan op je naam voor uitleg.
+            Je hebt {me.tokens} tokens. Tik bovenaan op je naam voor uitleg.
           </div>
         </>
       );
@@ -1085,7 +1534,7 @@ export default function PhoneApp() {
     case 'stealing': {
       if (mine && p.phase === 'placing' && !p.turn?.locked) {
         return <PlacingMine pub={p} me={me} offset={ph.offset} send={ph.send} busy={ph.busy} common={common} />;
-      } else if (mine) {
+      } else if (mine && p.phase !== 'turnStart') {
         const years = me.cards.map((c) => c.year);
         const slot = p.turn?.slot ?? null;
         const [l, r] = slot === null ? [null, null] : gapNeighbours(years, slot);
@@ -1094,39 +1543,31 @@ export default function PhoneApp() {
           <div data-testid="vastgezet">
             <div className="ph1">Vastgezet ✓</div>
             <div className="ph2">
-              {slot === null ? 'Geen plek gekozen.' : l === null ? `Vóór ${r}.` : r === null ? `Na ${l}.` : `Tussen ${l} en ${r}.`} Nu duimen…
+              {slot === null ? 'Geen plek gekozen.' : l === null ? `Vóór ${r}.` : r === null ? `Na ${l}.` : `Tussen ${l} en ${r}.`}
+              {p.turn?.yearGuess ? ` Jaar: ${p.turn.yearGuess}.` : ''} Nu duimen…
               {p.phase === 'stealing' ? ' de anderen mogen 10 s stelen.' : ''}
             </div>
             <PhoneTimeline
               cards={me.cards}
               slot={slot}
               ownLabel="Jouw keuze"
-              marks={Object.fromEntries(steals.map((st) => [st.slot, `🟣 ${p.players.find((x) => x.id === st.playerId)?.name ?? '?'} steelt hier`]))}
+              marks={Object.fromEntries(steals.filter((st) => st.slot !== slot).map((st) => [st.slot, `🟣 ${p.players.find((x) => x.id === st.playerId)?.name ?? '?'} steelt hier`]))}
             />
           </div>
         );
         act = <button className="pbtn dis">Wachten op de onthulling…</button>;
+      } else if (mine) {
+        // Eigen beurtstart terwijl het hostmenu open is of de verbinding hapert.
+        body = (
+          <div data-testid="jij-bent-klein">
+            <div className="ph1">Jij bent aan de beurt!</div>
+            <div className="ph2">Sluit het menu om te starten.</div>
+          </div>
+        );
       } else if (active && p.phase === 'stealing') {
         return <StealView pub={p} me={me} active={active} offset={ph.offset} send={ph.send} busy={ph.busy} common={common} />;
       } else if (active) {
-        const bought = p.lastBuy?.playerId === active.id;
-        body = (
-          <div data-testid="andermans-beurt">
-            <div className="ph1" style={{ color: active.color }}>
-              {active.name} is aan de beurt
-            </div>
-            <div className="ph2">
-              {p.phase === 'turnStart'
-                ? bought
-                  ? `${active.name} kocht een kaart. Het nummer begint zo.`
-                  : 'Het nummer begint zo. Kijk mee op de tv.'
-                : p.turn?.slot === null
-                  ? `Luister mee. ${active.name} kiest een plek…`
-                  : `${active.name} legt hier. Klopt dat? Na het vastzetten kun je stelen.`}
-            </div>
-            <PhoneTimeline cards={active.cards} slot={p.turn?.slot ?? null} ownLabel={`${active.name} legt hier`} />
-          </div>
-        );
+        return <OthersTurn pub={p} me={me} active={active} send={ph.send} common={common} />;
       }
       break;
     }
@@ -1138,6 +1579,7 @@ export default function PhoneApp() {
       break;
     case 'standings':
       body = <StandingsPhone pub={p} me={me} />;
+      act = reacts;
       break;
   }
 
