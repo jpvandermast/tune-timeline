@@ -15,7 +15,29 @@ export interface StateMsg {
   sentAt: number;
 }
 
-export const PHONE_INTENTS = ['join', 'start', 'settings', 'startSong', 'pickSlot', 'lock', 'rematch', 'lobby'] as const;
+export const PHONE_INTENTS = [
+  'join',
+  'start',
+  'settings',
+  'startSong',
+  'pickSlot',
+  'lock',
+  'rematch',
+  'lobby',
+  'buy',
+  'skip',
+  'claim',
+  'steal',
+  'pass',
+  'objection',
+  'pause',
+  'skipTurn',
+  'flipVerdict',
+  'flipClaim',
+  'removePlayer',
+  'restartSong',
+  'stopGame',
+] as const;
 export type IntentType = (typeof PHONE_INTENTS)[number];
 
 export interface Intent {

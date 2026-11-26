@@ -73,6 +73,23 @@ export function play(sound: Sound) {
     case 'countdown':
       tone(880, 0, 0.08, 'sine', 0.12);
       break;
+    case 'stealOpen':
+      tone(440, 0, 0.12, 'triangle', 0.14);
+      tone(660, 0.1, 0.18, 'triangle', 0.14);
+      break;
+    case 'steal':
+      noise(0, 0.25, 0.12, 2500);
+      tone(900, 0, 0.18, 'sine', 0.08);
+      break;
+    case 'kassa':
+      tone(1319, 0, 0.12, 'square', 0.08);
+      tone(1760, 0.1, 0.3, 'square', 0.08);
+      noise(0.05, 0.15, 0.06, 4000);
+      break;
+    case 'coin':
+      tone(1568, 0, 0.08, 'sine', 0.14);
+      tone(2093, 0.07, 0.25, 'sine', 0.12);
+      break;
     case 'fanfare':
       [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * 0.18, i === 5 ? 1.2 : 0.22, 'triangle', 0.2));
       break;

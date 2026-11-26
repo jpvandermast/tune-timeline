@@ -364,3 +364,4 @@ input{font:inherit;color:inherit}
 @keyframes tpulse{from{transform:scale(1.25)}to{transform:scale(1)}}
 
 .win .card::before,.win .card::after{background:#f0a53a}
+.sheet .li{background:var(--pruim2);color:var(--creme)}

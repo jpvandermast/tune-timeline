@@ -21,6 +21,12 @@ function started(n = 3) {
   return sim;
 }
 
+/** Iedereen past in het steelvenster. */
+function passAll(sim: Sim) {
+  if (sim.state.phase !== 'stealing') return;
+  for (const id of sim.state.turn!.stealEligible) sim.intent(id, 'pass');
+}
+
 /** Speelt de beurt van de actieve speler; goed=true kiest een goede plek. */
 function playTurn(sim: Sim, goed: boolean) {
   sim.until('turnStart');
@@ -32,6 +38,7 @@ function playTurn(sim: Sim, goed: boolean) {
   const slot = goed ? good[0] : [...Array(years.length + 1).keys()].find((s) => !good.includes(s));
   sim.intent(p.id, 'pickSlot', { slot: slot ?? good[0] });
   sim.intent(p.id, 'lock');
+  passAll(sim);
   return { p, song, slot };
 }
 
@@ -185,6 +192,9 @@ describe('een beurt', () => {
     const slot = correctSlots(p.cards.map((c) => c.year), song.year)[0];
     sim.intent(p.id, 'pickSlot', { slot });
     sim.advance(45_000);
+    expect(sim.state.phase).toBe('stealing');
+    expect(sim.state.turn!.slot).toBe(slot);
+    sim.advance(10_000);
     expect(sim.state.phase).toBe('reveal');
     expect(sim.state.reveal?.correct).toBe(true);
   });
@@ -194,6 +204,8 @@ describe('een beurt', () => {
     sim.intent(sim.active().id, 'startSong');
     sim.playing();
     sim.advance(45_000);
+    expect(sim.state.phase).toBe('stealing');
+    passAll(sim);
     expect(sim.state.phase).toBe('reveal');
     expect(sim.state.reveal?.correct).toBe(false);
     expect(sim.state.reveal?.slot).toBeNull();

@@ -5,16 +5,18 @@ Online muziektijdlijn-feestspel voor 2–10 spelers. De pc aan de tv is het bord
 - Live: https://tune-timeline.vercel.app (tv: `/tv`, meedoen: `/speel`)
 - Ontwerp en voorbereiding: [`docs/`](docs/) — bron van waarheid is `docs/concept-v2/CONCEPT.md`, het uiterlijk staat in `docs/concept-v2/mockups/index.html`.
 
-## Stand: fase 1 (kernspel zonder tokens)
+## Stand: fase 2 (tokens)
 
 Werkt:
-- Tv: Spotify verbinden, "Klik om te beginnen", lobby met QR-code, kamercode en 10 stoelen, startkaarten (uniek jaar 1960–2015, oudste begint), beurtstart, nummer speelt, live meekijken met plaatsen, vastzetten, onthulling goed/mis, tussenstand na elke ronde, winnaar met prijzen, "Nog een potje".
-- Telefoon: meedoen via QR of 4-letterige code, naam en kleur, wachten (host kiest doel en plaatstijd en start), jouw beurt, plaatsen in een verticale tijdlijn, vastgezet, resultaat, andermans beurt, tussenstand, winnaar.
-- Herverbinden van telefoons (scherm uit/aan, wifi ↔ 4G, herladen); de tv bewaart het spel en gaat na verversen verder met één klik "Muziek hervatten".
-- Nummer speelt na 6 s niet → automatisch een ander nummer, niemand verliest iets.
-- Nep-speler zonder muziek voor testen: `/tv?nep=1`.
+- **Fase 1, kernspel:** lobby met QR-code en code, startkaarten (uniek jaar 1960–2015, oudste begint), beurtstart, nummer speelt, live plaatsen, vastzetten, onthulling, tussenstand, winnaar, "Nog een potje". Telefoons herverbinden; de tv bewaart het spel ("Muziek hervatten"). Nummer speelt niet → ander nummer.
+- **Tokens (2 bij de start, max 5)** op de bordjes en op de telefoon; tik op je naam bovenaan voor uitleg.
+- **Stelen:** na het vastzetten 10 s steelvenster. Telefoon toont meteen de tijdlijn: tik een vrij gat en "STEEL hier · 1 token", of "Pas". Steelfiches verschijnen live op de tv. Alle uitkomsten: actieve speler goed (stelers token kwijt), steler goed (kaart naar zijn tijdlijn), twee goede stelers (eerste wint, ander token terug), niemand goed. Venster sluit eerder als iedereen gestolen of gepast heeft; "Net bezet door …" en "Te laat…".
+- **Overslaan** (1 token, nieuw nummer, timer opnieuw) en **kopen** (3 tokens, alleen bij de beurtstart, daarna speel je gewoon).
+- **Titel + artiest:** schuifje "Ik noem titel + artiest", daarna 6 s bezwaar. Goed tenzij minstens de helft van de anderen "Fout!" tikt; goed = +1 token, ook bij een foute plaatsing (max 5).
+- **Hostmenu** (⚙︎ op de telefoon van de host): pauze, beurt overslaan, uitslag omdraaien, titel + artiest omdraaien, nummer opnieuw starten, speler verwijderen, spel stoppen.
+- Prijs "Meesterdief" (meeste steals) bij de winnaar.
 
-Nog niet (fase 2 en 3): tokens gebruiken (overslaan, stelen, kopen, verdienen), titel + artiest claimen en bezwaar, hostmenu, meegokken, emoji-reacties, uitleg-scherm, late instappers, "Ik speelde al", offline-wachttijd van 20 s, tweede-tv-melding, terugvaloptie Spotify-app, Pro/Expert, Space Grotesk.
+Nog niet (fase 3): animaties zoals de kaart die naar de steler vliegt, meegokken + "Beste oor", emoji-reacties, uitleg-scherm, speelduur per instelling, late instappers, "Ik speelde al", offline-wachttijd van 20 s, tweede-tv-melding, terugvaloptie Spotify-app, Pro/Expert, Space Grotesk.
 
 ## Lokaal starten
 
@@ -37,8 +39,9 @@ Opent je browser om in te loggen bij Spotify (alleen je playlists lezen), haalt 
 ```bash
 npm run build                # typecheck + productiebouw
 npm test                     # spelregels en jaarbepaling (Vitest)
-npm run e2e                  # schermtests met Playwright (1 tv + 3 telefoons, nep-speler)
+npm run e2e                  # schermtests met Playwright (1 tv + 3 of 4 telefoons, nep-speler)
 RUN_SUPABASE=1 npm run e2e   # ook een test via het echte Supabase Realtime-kanaal
+PW_BASE=https://tune-timeline.vercel.app RUN_SUPABASE=1 npx playwright test e2e/supabase.spec.ts  # tegen de live site
 ```
 
 Screenshots van de schermtests komen in `test-results/screens/`.

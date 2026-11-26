@@ -195,6 +195,8 @@ test('telefoon herladen en tv verversen midden in een beurt', async ({ browser }
   expect(after.turn?.slot).toBe(0);
   expect(after.players.map((p) => p.cards.length)).toEqual(before.players.map((p) => p.cards.length));
   await active.getByTestId('vastzetten').click();
+  await expect(tv.locator('[data-phase="stealing"]')).toBeVisible({ timeout: 5000 });
+  await idle.getByTestId('pas').click();
   await expect(tv.locator('[data-phase="reveal"]')).toBeVisible({ timeout: 5000 });
   await context.close();
 });

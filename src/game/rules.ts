@@ -2,6 +2,7 @@
 import type { Card, Player, Song } from './types';
 
 export const START_TOKENS = 2;
+export const BUY_COST = 3;
 export const MAX_TOKENS = 5;
 export const MAX_PLAYERS = 10;
 export const MIN_PLAYERS = 2;
@@ -12,6 +13,10 @@ export const TIMES = {
   deal: 6000,
   turnStart: 6000,
   reveal: 5000,
+  steal: 10_000,
+  objection: 6000,
+  objectionResult: 2500,
+  buyShow: 3500,
   standings: 6000,
   songCheck: 6000,
   notice: 4000,

@@ -112,23 +112,60 @@ function TvTimeline({
   insertAt,
   mystery,
   top,
+  stealable,
+  stealGaps,
+  highlight,
+  all,
 }: {
   cards: Card[];
   insertAt?: number | null;
   mystery?: (w: number) => ReactNode;
   top?: number;
+  /** Steelvenster: vrije gaten violet gestippeld (behalve de plek van de actieve speler). */
+  stealable?: boolean;
+  /** Geclaimde steelgaten: gat → speler. */
+  stealGaps?: Record<number, PublicPlayer>;
+  /** songId van een kaart die oplicht (gekochte kaart). */
+  highlight?: string;
+  all?: PublicPlayer[];
 }) {
-  const items = cards.length + (mystery && insertAt !== null && insertAt !== undefined ? 1 : 0);
-  const gapW = items > 9 ? 24 : 56;
-  const w = cardWidth(items, gapW);
+  const hasMystery = Boolean(mystery && insertAt !== null && insertAt !== undefined);
+  const items = cards.length + (hasMystery ? 1 : 0);
+  const anySteal = stealable || (stealGaps && Object.keys(stealGaps).length > 0);
+  // Breedte van steelgaten: 110 px als het past, anders smaller (tv met veel kaarten: 40 px).
+  const plainW = items > 9 ? 24 : 56;
+  let stealW = 110;
+  let w = 200;
+  if (anySteal) {
+    const gaps = cards.length + 1;
+    for (const sw of [110, 80, 56, 40]) {
+      stealW = sw;
+      w = Math.floor((1840 - gaps * sw - (hasMystery ? plainW : 0)) / items);
+      if (w >= 150 || sw === 40) break;
+    }
+    w = Math.max(120, Math.min(200, w));
+  } else {
+    w = cardWidth(items, plainW);
+  }
   const out: ReactNode[] = [];
   for (let g = 0; g <= cards.length; g++) {
-    if (insertAt === g && mystery) {
-      out.push(<div key={`m-gap`} className="gap" style={{ width: gapW }} />);
-      out.push(<div key="m">{mystery(w)}</div>);
+    if (insertAt === g && hasMystery) {
+      out.push(<div key="m-gap" className="gap" style={{ width: plainW }} />);
+      out.push(<div key="m">{mystery!(w)}</div>);
     }
-    out.push(<div key={`g${g}`} className="gap" style={{ width: gapW }} />);
-    if (g < cards.length) out.push(<TvCard key={cards[g].songId} c={cards[g]} w={w} />);
+    const taken = stealGaps?.[g];
+    const isSteal = Boolean((stealable && insertAt !== g) || taken);
+    out.push(
+      <div key={`g${g}`} className={`gap ${isSteal ? 'steal' : ''} ${taken ? 'taken' : ''}`} style={{ width: isSteal ? stealW : plainW }}>
+        {taken && (
+          <div className="tok">
+            <Avatar p={taken} all={all} style={stealW < 80 ? { width: 40, height: 40, fontSize: 20 } : undefined} />
+            <span style={stealW < 80 ? { fontSize: 18, padding: '1px 5px' } : undefined}>{taken.name}</span>
+          </div>
+        )}
+      </div>,
+    );
+    if (g < cards.length) out.push(<TvCard key={cards[g].songId} c={cards[g]} w={w} cls={highlight === cards[g].songId ? 'good' : ''} />);
   }
   return (
     <div className="tl" style={top !== undefined ? { top } : undefined} data-testid="tv-timeline">
@@ -260,9 +297,43 @@ function Deal({ s, room, lokaal }: { s: GameState; room: { code: string; chan: s
   );
 }
 
-function TurnStart({ s, room, lokaal }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean }) {
+type Room = { code: string; chan: string };
+
+const nm = (s: GameState, id: string | null | undefined) => s.players.find((x) => x.id === id);
+
+/** Steelgaten: gat → speler (voor de tijdlijn). */
+function stealMap(s: GameState, steals: { playerId: string; slot: number }[]): Record<number, PublicPlayer> {
+  const pub = toPublic(s).players;
+  const out: Record<number, PublicPlayer> = {};
+  for (const st of steals) {
+    const pl = pub.find((x) => x.id === st.playerId);
+    if (pl) out[st.slot] = pl;
+  }
+  return out;
+}
+
+function TurnStart({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const p = s.players.find((x) => x.id === s.turn?.playerId)!;
   const left = secsLeft(s);
+  const buy = s.lastBuy && s.lastBuy.playerId === p.id ? s.lastBuy : null;
+  if (buy) {
+    return (
+      <>
+        <Topbar s={s} flags={{ [p.id]: { flag: '−3 tokens' } }} />
+        <div className="phase">
+          <div className="big" style={{ color: p.color, fontSize: 84 }}>
+            {p.name} koopt een kaart
+          </div>
+          <div className="sub">3 tokens ingeleverd · de kaart ligt meteen goed · daarna gewoon luisteren</div>
+        </div>
+        <TvTimeline cards={p.cards} highlight={buy.card.songId} />
+        <div className="banner">
+          Nu <b>{p.cards.length} van {s.settings.goal}</b> · het nummer voor deze beurt start over <b className="num">{left}</b>
+        </div>
+        <Bottombar ph="Kaart gekocht" sub="beurt gaat gewoon door" frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
+      </>
+    );
+  }
   return (
     <>
       <Topbar s={s} />
@@ -276,19 +347,27 @@ function TurnStart({ s, room, lokaal }: { s: GameState; room: { code: string; ch
       </div>
       <TvTimeline cards={p.cards} />
       <div className="banner">
-        Muziek start over <b className="num">{left}</b> · {p.name} kan ook zelf starten op de telefoon
+        Muziek start over <b className="num">{left}</b> ·{' '}
+        {p.tokens >= 3 ? (
+          <>
+            {p.name} kan eerst een kaart <b>kopen</b> (3 tokens)
+          </>
+        ) : (
+          `${p.name} kan ook zelf starten op de telefoon`
+        )}
       </div>
-      <Bottombar ph="Beurtstart" sub={`ronde ${s.round}`} frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
+      <Bottombar ph="Beurtstart" sub={p.tokens >= 3 ? 'kopen kan alleen nu' : `ronde ${s.round}`} frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
     </>
   );
 }
 
-function Placing({ s, room, lokaal }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean }) {
+function Placing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const p = s.players.find((x) => x.id === s.turn?.playerId)!;
   const slot = s.turn?.slot ?? null;
   const total = s.settings.placeSeconds * 1000 * s.settings.tempo;
   const years = p.cards.map((c) => c.year);
   const sub = `nummer ${s.songsPlayed + 1} van ${toPublic(s).deckSize}`;
+  const claim = s.turn?.claim ? ' · titel + artiest geclaimd 🎤' : '';
   return (
     <>
       <Topbar s={s} />
@@ -303,6 +382,7 @@ function Placing({ s, room, lokaal }: { s: GameState; room: { code: string; chan
             <MysteryCard />
           </div>
           <TvTimeline cards={p.cards} top={560} />
+          {claim && <div className="banner" style={{ top: 960, fontSize: 26 }}>{claim.slice(3)}</div>}
         </>
       ) : (
         <>
@@ -316,7 +396,7 @@ function Placing({ s, room, lokaal }: { s: GameState; room: { code: string; chan
             )}
           />
           <div className="banner">
-            {range(years, slot)}?
+            {range(years, slot)}?{claim}
           </div>
         </>
       )}
@@ -325,14 +405,103 @@ function Placing({ s, room, lokaal }: { s: GameState; room: { code: string; chan
   );
 }
 
-function Reveal({ s, room, lokaal }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean }) {
+function rangeShort(years: number[], slot: number) {
+  const [l, r] = gapNeighbours(years, slot);
+  if (l === null && r === null) return 'ergens';
+  if (l === null) return `vóór ${r}`;
+  if (r === null) return `na ${l}`;
+  return `${l}–${r}`;
+}
+
+function Stealing({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
+  const t = s.turn!;
+  const p = nm(s, t.playerId)!;
+  const years = p.cards.map((c) => c.year);
+  const pub = toPublic(s).players;
+  const parts = [
+    ...t.steals.map((st) => (
+      <span key={st.playerId}>
+        <b>{nm(s, st.playerId)?.name}</b> ({rangeShort(years, st.slot)})
+      </span>
+    )),
+    ...t.passed.map((id) => <span key={id}>{nm(s, id)?.name} past</span>),
+  ];
+  const stamp = (w: number) => (
+    <MysteryCard w={w}>
+      <div className="stamp" style={w < 180 ? { top: 70, fontSize: 22 } : undefined}>
+        VASTGEZET
+      </div>
+    </MysteryCard>
+  );
+  return (
+    <>
+      <div className="glow-v" />
+      <Topbar s={s} />
+      <div className="phase">
+        <div className="big" style={{ color: '#b9a8ff', fontSize: 96 }}>
+          Wie steelt?
+        </div>
+        <div className="sub">
+          {t.slot === null ? `${p.name} koos geen plek: elke plek is te stelen` : `Denk je dat ${p.name} fout zit? Kies de goede plek`} · 1 token
+        </div>
+      </div>
+      <Ringer s={s} total={10_000 * s.settings.tempo} violet />
+      {t.slot === null ? (
+        <>
+          <div style={{ position: 'absolute', left: '50%', top: 366, transform: 'translateX(-50%) scale(.74)', transformOrigin: '50% 0' }}>{stamp(200)}</div>
+          <TvTimeline cards={p.cards} top={560} stealable stealGaps={stealMap(s, t.steals)} all={pub} />
+        </>
+      ) : (
+        <TvTimeline cards={p.cards} insertAt={t.slot} mystery={stamp} stealable stealGaps={stealMap(s, t.steals)} all={pub} />
+      )}
+      <div className="banner" style={{ top: 900 }}>
+        {parts.length ? (
+          <>
+            Stelen:{' '}
+            {parts.map((x, i) => (
+              <span key={i}>
+                {i > 0 && ' · '}
+                {x}
+              </span>
+            ))}
+          </>
+        ) : (
+          'Tik op je telefoon een plek en dan STEEL'
+        )}
+      </div>
+      <Bottombar ph="Steelvenster" sub="wie het eerst tikt, heeft de plek" frac={fracLeft(s, 10_000 * s.settings.tempo)} violet room={room} lokaal={lokaal} />
+    </>
+  );
+}
+
+function names(list: string[]) {
+  if (list.length <= 1) return list.join('');
+  return `${list.slice(0, -1).join(', ')} en ${list[list.length - 1]}`;
+}
+
+function Reveal({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
   const r = s.reveal!;
-  const p = s.players.find((x) => x.id === r.playerId)!;
+  const p = nm(s, r.playerId)!;
   const song = r.song;
   const card: Card = { songId: song.id, year: song.year, title: song.title, artist: song.artist };
+  const thief = r.stolenBy ? nm(s, r.stolenBy) : null;
   // Tijdlijn zonder de zojuist gewonnen kaart; de flipkaart staat op de gekozen plek.
   const base = r.correct ? p.cards.filter((c) => c.songId !== song.id) : p.cards;
-  const flags = r.correct ? { [p.id]: { flag: '+1 kaart' } } : undefined;
+  const flags: Record<string, { flag?: string }> = {};
+  if (r.correct) flags[p.id] = { flag: '+1 kaart' };
+  for (const st of r.steals) {
+    if (st.outcome === 'won') flags[st.playerId] = { flag: '+1 kaart' };
+    else if (st.outcome === 'lost') flags[st.playerId] = { flag: '−1 token' };
+    else flags[st.playerId] = { flag: 'token terug' };
+  }
+  const losers = r.steals.filter((x) => x.outcome === 'lost').map((x) => nm(s, x.playerId)?.name ?? '');
+  const refunds = r.steals.filter((x) => x.outcome === 'refund').map((x) => nm(s, x.playerId)?.name ?? '');
+  const bannerParts: string[] = [];
+  if (thief) bannerParts.push(`De kaart vliegt naar ${thief.name}`);
+  else if (r.correct) bannerParts.push(`${p.name} heeft nu ${r.cardsAfter} kaarten`);
+  else bannerParts.push(r.steals.length ? 'Niemand stal goed · de kaart gaat weg' : 'De kaart gaat weg');
+  if (losers.length) bannerParts.push(`${names(losers)} ${losers.length > 1 ? 'verliezen hun token' : 'verliest een token'}`);
+  if (refunds.length) bannerParts.push(`${names(refunds)} krijgt de token terug`);
   return (
     <>
       <Topbar s={s} flags={flags} />
@@ -344,6 +513,16 @@ function Reveal({ s, room, lokaal }: { s: GameState; room: { code: string; chan:
             </div>
             <div className="sub reveal-sub">
               {p.name} houdt de kaart · {r.cardsAfter} van {s.settings.goal}
+              {r.flipped ? ' · omgedraaid door de host' : ''}
+            </div>
+          </>
+        ) : thief ? (
+          <>
+            <div className="result pop" style={{ color: thief.color, fontSize: 96 }}>
+              GESTOLEN DOOR {thief.name.toUpperCase()}!
+            </div>
+            <div className="sub reveal-sub">
+              {p.name} zat mis: dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b> en {hoorde(r.between)}
             </div>
           </>
         ) : (
@@ -353,6 +532,7 @@ function Reveal({ s, room, lokaal }: { s: GameState; room: { code: string; chan:
             </div>
             <div className="sub reveal-sub">
               {r.slot === null ? `${p.name} koos geen plek · ` : ''}Dit nummer is uit <b style={{ color: 'var(--creme)' }}>{song.year}</b> en {hoorde(r.between)}
+              {r.flipped ? ' · omgedraaid door de host' : ''}
             </div>
           </>
         )}
@@ -362,18 +542,80 @@ function Reveal({ s, room, lokaal }: { s: GameState; room: { code: string; chan:
           <div style={{ position: 'absolute', left: '50%', top: 340, transform: 'translateX(-50%) scale(.85)', transformOrigin: '50% 0' }}>
             <FlipCard c={card} cls="bad" />
           </div>
-          <TvTimeline cards={base} top={570} />
+          <TvTimeline cards={base} top={570} stealGaps={stealMap(s, r.steals)} all={toPublic(s).players} />
         </>
       ) : (
-        <TvTimeline cards={base} insertAt={r.slot} mystery={(w) => <FlipCard c={card} w={w} cls={r.correct ? 'good' : 'bad'} drop={!r.correct} />} />
+        <TvTimeline
+          cards={base}
+          insertAt={r.slot}
+          mystery={(w) => <FlipCard c={card} w={w} cls={r.correct ? 'good' : 'bad'} drop={!r.correct} />}
+          stealGaps={stealMap(s, r.steals)}
+          all={toPublic(s).players}
+        />
       )}
-      <div className="banner reveal-sub">{r.correct ? `${p.name} heeft nu ${r.cardsAfter} kaarten` : 'De kaart gaat weg'}</div>
+      <div className="banner reveal-sub">{bannerParts.join(' · ')}</div>
       <Bottombar ph="Onthulling" sub={`${song.artist} — ${song.title}`} frac={1} room={room} lokaal={lokaal} />
     </>
   );
 }
 
-function Standings({ s, room, lokaal }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean }) {
+function ObjectionScreen({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean }) {
+  const o = s.objection!;
+  const r = s.reveal!;
+  const p = nm(s, o.playerId)!;
+  const fout = Object.values(o.votes).filter((v) => v === 'fout').length;
+  const card: Card = { songId: r.song.id, year: r.song.year, title: r.song.title, artist: r.song.artist };
+  const res = o.result;
+  const flags: Record<string, { flag?: string }> = {};
+  if (res?.awarded) flags[p.id] = { flag: '+1 token' };
+  if (res?.maxed) flags[p.id] = { flag: 'Max 5' };
+  return (
+    <>
+      <Topbar s={s} flags={flags} />
+      <div className="phase">
+        <div className="big" style={{ fontSize: 72 }}>
+          Had {p.name} titel + artiest goed?
+        </div>
+        <div className="sub">
+          Het was: “{r.song.title} — {r.song.artist}”
+        </div>
+      </div>
+      <div style={{ position: 'absolute', top: 470, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 60, alignItems: 'center' }}>
+        <TvCard c={card} cls={res ? (res.ok ? 'good' : 'bad') : r.correct ? 'good' : ''} />
+        {res ? (
+          <div style={{ fontSize: 56, fontWeight: 900, lineHeight: 1.3, color: res.ok ? 'var(--mint)' : 'var(--rood)' }}>
+            {res.ok ? 'Goedgekeurd!' : 'Afgekeurd'}
+            <br />
+            <span style={{ fontSize: 34, color: 'var(--gedempt)', fontWeight: 700 }}>
+              {res.ok ? (res.awarded ? `+1 token voor ${p.name}` : `${p.name} zit al op Max 5`) : `${fout} bezwaren · geen token`}
+            </span>
+          </div>
+        ) : (
+          <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.5 }}>
+            Bezwaren: <span className="num" style={{ color: 'var(--rood)' }}>{fout}</span> van {o.eligible.length}
+            <br />
+            <span style={{ fontSize: 28, color: 'var(--gedempt)', fontWeight: 600 }}>
+              {o.needed} {o.needed === 1 ? 'bezwaar' : 'bezwaren'} nodig om het af te keuren
+            </span>
+            <br />
+            <span style={{ fontSize: 28, color: 'var(--gedempt)', fontWeight: 600 }}>
+              Geen bezwaar = <b style={{ color: 'var(--amber)' }}>+1 token</b> voor {p.name}
+            </span>
+          </div>
+        )}
+      </div>
+      <Bottombar
+        ph="Bezwaar?"
+        sub={res ? 'uitslag' : 'alleen tikken als het fout was · 6 s'}
+        frac={res ? 1 : fracLeft(s, 6000 * s.settings.tempo)}
+        room={room}
+        lokaal={lokaal}
+      />
+    </>
+  );
+}
+
+function Standings({ s, room, lokaal, paused }: { s: GameState; room: { code: string; chan: string }; lokaal: boolean; paused?: boolean }) {
   const pub = toPublic(s).players;
   const rows = [...pub].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
   const next = s.players[s.turnIndex];
@@ -382,10 +624,10 @@ function Standings({ s, room, lokaal }: { s: GameState; room: { code: string; ch
     <>
       <div className="phase" style={{ top: 70 }}>
         <div className="big" style={{ fontSize: 80 }}>
-          Tussenstand
+          {paused ? 'Pauze ☕' : 'Tussenstand'}
         </div>
         <div className="sub">
-          na ronde {s.round - 1} · doel {s.settings.goal} kaarten
+          {paused ? `ronde ${s.round}` : `na ronde ${s.round - 1}`} · doel {s.settings.goal} kaarten
           {mp.length > 0 && <span style={{ color: 'var(--rood)' }}> · {mp.map((p) => p.name).join(' en ')} {mp.length > 1 ? 'staan' : 'staat'} op match point</span>}
         </div>
       </div>
@@ -394,7 +636,13 @@ function Standings({ s, room, lokaal }: { s: GameState; room: { code: string; ch
           <StandRow key={p.id} p={p} pos={i + 1} lead={i === 0} all={pub} goal={s.settings.goal} />
         ))}
       </div>
-      <Bottombar ph="Tussenstand" sub={`volgende beurt: ${next?.name} · 6 s`} frac={fracLeft(s, 6000 * s.settings.tempo)} room={room} lokaal={lokaal} />
+      <Bottombar
+        ph={paused ? 'Pauze' : 'Tussenstand'}
+        sub={paused ? 'de host gaat verder via het hostmenu' : `volgende beurt: ${next?.name} · 6 s`}
+        frac={paused ? 1 : fracLeft(s, 6000 * s.settings.tempo)}
+        room={room}
+        lokaal={lokaal}
+      />
     </>
   );
 }
@@ -574,8 +822,14 @@ export default function TvApp() {
     case 'placing':
       screen = <Placing s={s} room={room} lokaal={lokaal} />;
       break;
+    case 'stealing':
+      screen = <Stealing s={s} room={room} lokaal={lokaal} />;
+      break;
     case 'reveal':
       screen = <Reveal s={s} room={room} lokaal={lokaal} />;
+      break;
+    case 'objection':
+      screen = s.objection && s.reveal ? <ObjectionScreen s={s} room={room} lokaal={lokaal} /> : null;
       break;
     case 'standings':
       screen = <Standings s={s} room={room} lokaal={lokaal} />;
@@ -585,14 +839,16 @@ export default function TvApp() {
       break;
   }
 
+  if (s.paused) screen = <Standings s={s} room={room} lokaal={lokaal} paused />;
+
   return (
     <Stage win={s.phase === 'winner'} ten={s.players.length >= 7}>
-      <div data-phase={s.phase} data-testid="tv" style={{ position: 'absolute', inset: 0 }}>
+      <div data-phase={s.paused ? 'paused' : s.phase} data-testid="tv" style={{ position: 'absolute', inset: 0 }}>
         {screen}
       </div>
       {s.notice && (
         <div className="toastTv tvnotice" style={s.phase === 'placing' ? { top: 130 } : undefined}>
-          ⚠ {s.notice.text}
+          {s.notice.kind === 'songFailed' ? '⚠ ' : ''}{s.notice.text}
         </div>
       )}
       {g.net === 'error' && (

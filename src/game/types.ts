@@ -25,7 +25,9 @@ export type Phase =
   | 'deal' // startkaarten worden gedeeld
   | 'turnStart' // 6 s, "X is aan de beurt"
   | 'placing' // nummer speelt, actieve speler kiest een plek
+  | 'stealing' // steelvenster (10 s) na het vastzetten
   | 'reveal' // kaart draait om
+  | 'objection' // bezwaar tegen titel + artiest (6 s)
   | 'standings' // tussenstand na een ronde
   | 'winner';
 
@@ -33,6 +35,7 @@ export interface PlayerStats {
   correct: number;
   oldestCorrect: number | null;
   closestMiss: number | null;
+  steals: number;
 }
 
 export interface Player {
@@ -67,6 +70,31 @@ export interface Turn {
   songAttempts: number;
   /** Het nummer speelt hoorbaar (signaal van de speler). */
   playing: boolean;
+  /** Schuifje "Ik noem titel + artiest". */
+  claim: boolean;
+  /** Al een kaart gekocht deze beurt. */
+  bought: boolean;
+  /** Steals in ontvangstvolgorde van de tv. */
+  steals: { playerId: string; slot: number }[];
+  passed: string[];
+  /** Wie bij het openen van het steelvenster mocht stelen. */
+  stealEligible: string[];
+}
+
+export interface StealResult {
+  playerId: string;
+  slot: number;
+  correct: boolean;
+  outcome: 'won' | 'lost' | 'refund';
+}
+
+export interface Objection {
+  playerId: string;
+  open: boolean;
+  eligible: string[];
+  votes: Record<string, 'fout' | 'klopt'>;
+  needed: number;
+  result: { ok: boolean; awarded: boolean; maxed: boolean } | null;
 }
 
 export interface Reveal {
@@ -77,10 +105,14 @@ export interface Reveal {
   /** Buren waar het nummer had moeten liggen (null = rand). */
   between: [number | null, number | null];
   cardsAfter: number;
+  steals: StealResult[];
+  stolenBy: string | null;
+  claim: boolean;
+  flipped: boolean;
 }
 
 export interface Notice {
-  kind: 'songFailed' | 'info';
+  kind: 'songFailed' | 'info' | 'skip';
   text: string;
   until: number;
 }
@@ -108,6 +140,10 @@ export interface GameState {
   winnerId: string | null;
   dealInfo: { playerId: string; year: number } | null;
   notice: Notice | null;
+  objection: Objection | null;
+  lastBuy: { playerId: string; card: Card } | null;
+  /** Resterende tijd van de fase tijdens een pauze. */
+  pausedRemaining: number | null;
   songsPlayed: number;
   processedActions: string[];
   paused: boolean;
@@ -134,6 +170,19 @@ export type GameEvent =
   | (IntentBase & { type: 'lock' })
   | (IntentBase & { type: 'rematch' })
   | (IntentBase & { type: 'lobby' })
+  | (IntentBase & { type: 'buy' })
+  | (IntentBase & { type: 'skip' })
+  | (IntentBase & { type: 'claim'; on: boolean })
+  | (IntentBase & { type: 'steal'; slot: number })
+  | (IntentBase & { type: 'pass' })
+  | (IntentBase & { type: 'objection'; verdict: 'fout' | 'klopt' })
+  | (IntentBase & { type: 'pause' })
+  | (IntentBase & { type: 'skipTurn' })
+  | (IntentBase & { type: 'flipVerdict' })
+  | (IntentBase & { type: 'flipClaim' })
+  | (IntentBase & { type: 'removePlayer'; target: string })
+  | (IntentBase & { type: 'restartSong' })
+  | (IntentBase & { type: 'stopGame' })
   | (Base & { type: 'tick' })
   /** Na herladen van de tv: lopende fase opnieuw starten, nummer vanaf het begin. */
   | (Base & { type: 'resume' })
@@ -141,7 +190,20 @@ export type GameEvent =
   | (Base & { type: 'songFailed'; songId: string })
   | (Base & { type: 'presence'; onlineIds: string[] });
 
-export type Sound = 'plop' | 'turn' | 'tick' | 'lock' | 'drum' | 'good' | 'bad' | 'fanfare' | 'countdown';
+export type Sound =
+  | 'plop'
+  | 'turn'
+  | 'tick'
+  | 'lock'
+  | 'drum'
+  | 'good'
+  | 'bad'
+  | 'fanfare'
+  | 'countdown'
+  | 'stealOpen'
+  | 'steal'
+  | 'kassa'
+  | 'coin';
 
 export type Effect =
   | { type: 'play'; song: Song }

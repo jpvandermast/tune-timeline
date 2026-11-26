@@ -44,6 +44,9 @@ test('tv en 2 telefoons via Supabase: aanmelden, beurt, plaatsen live', async ({
   await active.getByTestId('gap-1').click();
   await expect(tv.locator('.arrow')).toBeVisible({ timeout: 5000 });
   await active.getByTestId('vastzetten').click();
+  const other = active === phones[0] ? phones[1] : phones[0];
+  await expect(other.getByTestId('steelweergave')).toBeVisible({ timeout: 5000 });
+  await other.getByTestId('pas').click();
   await expect(tv.locator('[data-phase="reveal"]')).toBeVisible({ timeout: 5000 });
   await expect(active.locator('[data-testid^="resultaat-"]')).toBeVisible({ timeout: 5000 });
 });
