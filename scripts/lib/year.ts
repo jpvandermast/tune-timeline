@@ -55,7 +55,8 @@ export function yearOf(date: string | undefined | null): number | null {
  * Beslisregel (CONCEPT 6.3):
  * - Spotify en MusicBrainz gelijk of 1 jaar verschil: vroegste → ok
  * - MusicBrainz eerder (≤ 15 jaar): MusicBrainz → ok-mb
- * - MusicBrainz later, > 15 jaar eerder, of geen gegevens: Spotify-jaar → controleren
+ * - MusicBrainz > 15 jaar eerder: MusicBrainz-jaar (beste gok) → controleren
+ * - MusicBrainz later of geen gegevens: Spotify-jaar → controleren
  */
 export function decideYear(spotifyYear: number, mbYear: number | null): YearDecision {
   if (mbYear === null) return { year: spotifyYear, yearSource: 'spotify', status: 'controleren' };
@@ -66,6 +67,9 @@ export function decideYear(spotifyYear: number, mbYear: number | null): YearDeci
       : { year: spotifyYear, yearSource: 'spotify', status: 'ok' };
   }
   if (diff > 1 && diff <= 15) return { year: mbYear, yearSource: 'musicbrainz', status: 'ok-mb' };
+  // Veel eerder bij MusicBrainz (typisch een verzamelalbum bij Spotify): het vroegste jaar is de beste gok,
+  // maar laat het nalopen. MusicBrainz later dan Spotify: Spotify houden en nalopen.
+  if (diff > 15) return { year: mbYear, yearSource: 'musicbrainz', status: 'controleren' };
   return { year: spotifyYear, yearSource: 'spotify', status: 'controleren' };
 }
 

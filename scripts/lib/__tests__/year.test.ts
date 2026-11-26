@@ -31,7 +31,7 @@ describe('decideYear (CONCEPT 6.3)', () => {
     expect(decideYear(1985, 1986)).toEqual({ year: 1985, yearSource: 'spotify', status: 'ok' });
   });
   it('MusicBrainz eerder (verzamelalbum): MusicBrainz, ok-mb', () => {
-    expect(decideYear(2011, 1979)).toEqual({ year: 2011, yearSource: 'spotify', status: 'controleren' }); // > 15 jaar
+    expect(decideYear(2011, 1979)).toEqual({ year: 1979, yearSource: 'musicbrainz', status: 'controleren' }); // > 15 jaar
     expect(decideYear(1994, 1985)).toEqual({ year: 1985, yearSource: 'musicbrainz', status: 'ok-mb' });
   });
   it('MusicBrainz later of geen gegevens: controleren', () => {
