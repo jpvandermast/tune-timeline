@@ -1,0 +1,569 @@
+[
+{
+"id": "demo00",
+"uri": "spotify:track:demo00",
+"title": "Johnny B. Goode",
+"artist": "Chuck Berry",
+"year": 1958,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo01",
+"uri": "spotify:track:demo01",
+"title": "Stand by Me",
+"artist": "Ben E. King",
+"year": 1961,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo02",
+"uri": "spotify:track:demo02",
+"title": "Twist and Shout",
+"artist": "The Isley Brothers",
+"year": 1962,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo03",
+"uri": "spotify:track:demo03",
+"title": "She Loves You",
+"artist": "The Beatles",
+"year": 1963,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo04",
+"uri": "spotify:track:demo04",
+"title": "My Girl",
+"artist": "The Temptations",
+"year": 1964,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo05",
+"uri": "spotify:track:demo05",
+"title": "(I Can't Get No) Satisfaction",
+"artist": "The Rolling Stones",
+"year": 1965,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo06",
+"uri": "spotify:track:demo06",
+"title": "Good Vibrations",
+"artist": "The Beach Boys",
+"year": 1966,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo07",
+"uri": "spotify:track:demo07",
+"title": "Respect",
+"artist": "Aretha Franklin",
+"year": 1967,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo08",
+"uri": "spotify:track:demo08",
+"title": "Hey Jude",
+"artist": "The Beatles",
+"year": 1968,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo09",
+"uri": "spotify:track:demo09",
+"title": "Venus",
+"artist": "Shocking Blue",
+"year": 1969,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo10",
+"uri": "spotify:track:demo10",
+"title": "Let It Be",
+"artist": "The Beatles",
+"year": 1970,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo11",
+"uri": "spotify:track:demo11",
+"title": "Imagine",
+"artist": "John Lennon",
+"year": 1971,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo12",
+"uri": "spotify:track:demo12",
+"title": "Lean On Me",
+"artist": "Bill Withers",
+"year": 1972,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo13",
+"uri": "spotify:track:demo13",
+"title": "Radar Love",
+"artist": "Golden Earring",
+"year": 1973,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo14",
+"uri": "spotify:track:demo14",
+"title": "Waterloo",
+"artist": "ABBA",
+"year": 1974,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo15",
+"uri": "spotify:track:demo15",
+"title": "Bohemian Rhapsody",
+"artist": "Queen",
+"year": 1975,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo16",
+"uri": "spotify:track:demo16",
+"title": "Dancing Queen",
+"artist": "ABBA",
+"year": 1976,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo17",
+"uri": "spotify:track:demo17",
+"title": "Stayin' Alive",
+"artist": "Bee Gees",
+"year": 1977,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo18",
+"uri": "spotify:track:demo18",
+"title": "Le Freak",
+"artist": "Chic",
+"year": 1978,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo19",
+"uri": "spotify:track:demo19",
+"title": "Video Killed the Radio Star",
+"artist": "The Buggles",
+"year": 1979,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo20",
+"uri": "spotify:track:demo20",
+"title": "Another One Bites the Dust",
+"artist": "Queen",
+"year": 1980,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo21",
+"uri": "spotify:track:demo21",
+"title": "Tainted Love",
+"artist": "Soft Cell",
+"year": 1981,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo22",
+"uri": "spotify:track:demo22",
+"title": "Africa",
+"artist": "Toto",
+"year": 1982,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo23",
+"uri": "spotify:track:demo23",
+"title": "Billie Jean",
+"artist": "Michael Jackson",
+"year": 1983,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo24",
+"uri": "spotify:track:demo24",
+"title": "Jump",
+"artist": "Van Halen",
+"year": 1984,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo25",
+"uri": "spotify:track:demo25",
+"title": "Take On Me",
+"artist": "a-ha",
+"year": 1985,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo26",
+"uri": "spotify:track:demo26",
+"title": "Kiss",
+"artist": "Prince",
+"year": 1986,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo27",
+"uri": "spotify:track:demo27",
+"title": "Never Gonna Give You Up",
+"artist": "Rick Astley",
+"year": 1987,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo28",
+"uri": "spotify:track:demo28",
+"title": "Sweet Child o' Mine",
+"artist": "Guns N' Roses",
+"year": 1988,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo29",
+"uri": "spotify:track:demo29",
+"title": "Like a Prayer",
+"artist": "Madonna",
+"year": 1989,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo30",
+"uri": "spotify:track:demo30",
+"title": "Vogue",
+"artist": "Madonna",
+"year": 1990,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo31",
+"uri": "spotify:track:demo31",
+"title": "Smells Like Teen Spirit",
+"artist": "Nirvana",
+"year": 1991,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo32",
+"uri": "spotify:track:demo32",
+"title": "Jump Around",
+"artist": "House of Pain",
+"year": 1992,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo33",
+"uri": "spotify:track:demo33",
+"title": "What Is Love",
+"artist": "Haddaway",
+"year": 1993,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo34",
+"uri": "spotify:track:demo34",
+"title": "Zombie",
+"artist": "The Cranberries",
+"year": 1994,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo35",
+"uri": "spotify:track:demo35",
+"title": "Wonderwall",
+"artist": "Oasis",
+"year": 1995,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo36",
+"uri": "spotify:track:demo36",
+"title": "Wannabe",
+"artist": "Spice Girls",
+"year": 1996,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo37",
+"uri": "spotify:track:demo37",
+"title": "Bitter Sweet Symphony",
+"artist": "The Verve",
+"year": 1997,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo38",
+"uri": "spotify:track:demo38",
+"title": "Believe",
+"artist": "Cher",
+"year": 1998,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo39",
+"uri": "spotify:track:demo39",
+"title": "Blue (Da Ba Dee)",
+"artist": "Eiffel 65",
+"year": 1999,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo40",
+"uri": "spotify:track:demo40",
+"title": "Yellow",
+"artist": "Coldplay",
+"year": 2000,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo41",
+"uri": "spotify:track:demo41",
+"title": "Clocks",
+"artist": "Coldplay",
+"year": 2002,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo42",
+"uri": "spotify:track:demo42",
+"title": "Hey Ya!",
+"artist": "OutKast",
+"year": 2003,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo43",
+"uri": "spotify:track:demo43",
+"title": "Mr. Brightside",
+"artist": "The Killers",
+"year": 2004,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo44",
+"uri": "spotify:track:demo44",
+"title": "Feel Good Inc.",
+"artist": "Gorillaz",
+"year": 2005,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo45",
+"uri": "spotify:track:demo45",
+"title": "Crazy",
+"artist": "Gnarls Barkley",
+"year": 2006,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo46",
+"uri": "spotify:track:demo46",
+"title": "Umbrella",
+"artist": "Rihanna",
+"year": 2007,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo47",
+"uri": "spotify:track:demo47",
+"title": "Viva la Vida",
+"artist": "Coldplay",
+"year": 2008,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo48",
+"uri": "spotify:track:demo48",
+"title": "Poker Face",
+"artist": "Lady Gaga",
+"year": 2009,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo49",
+"uri": "spotify:track:demo49",
+"title": "Rolling in the Deep",
+"artist": "Adele",
+"year": 2010,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo50",
+"uri": "spotify:track:demo50",
+"title": "Somebody That I Used to Know",
+"artist": "Gotye",
+"year": 2011,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo51",
+"uri": "spotify:track:demo51",
+"title": "Get Lucky",
+"artist": "Daft Punk",
+"year": 2013,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo52",
+"uri": "spotify:track:demo52",
+"title": "Uptown Funk",
+"artist": "Mark Ronson",
+"year": 2014,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo53",
+"uri": "spotify:track:demo53",
+"title": "Hello",
+"artist": "Adele",
+"year": 2015,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo54",
+"uri": "spotify:track:demo54",
+"title": "Shape of You",
+"artist": "Ed Sheeran",
+"year": 2017,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo55",
+"uri": "spotify:track:demo55",
+"title": "Bad Guy",
+"artist": "Billie Eilish",
+"year": 2019,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo56",
+"uri": "spotify:track:demo56",
+"title": "Blinding Lights",
+"artist": "The Weeknd",
+"year": 2020,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo57",
+"uri": "spotify:track:demo57",
+"title": "As It Was",
+"artist": "Harry Styles",
+"year": 2022,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo58",
+"uri": "spotify:track:demo58",
+"title": "Flowers",
+"artist": "Miley Cyrus",
+"year": 2023,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo59",
+"uri": "spotify:track:demo59",
+"title": "Dancing in the Moonlight",
+"artist": "King Harvest",
+"year": 1972,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo60",
+"uri": "spotify:track:demo60",
+"title": "Total Eclipse of the Heart",
+"artist": "Bonnie Tyler",
+"year": 1983,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo61",
+"uri": "spotify:track:demo61",
+"title": "Gangnam Style",
+"artist": "PSY",
+"year": 2012,
+"yearSource": "correctie",
+"status": "demo"
+},
+{
+"id": "demo62",
+"uri": "spotify:track:demo62",
+"title": "Toxic",
+"artist": "Britney Spears",
+"year": 2003,
+"yearSource": "correctie",
+"status": "demo"
+}
+]
