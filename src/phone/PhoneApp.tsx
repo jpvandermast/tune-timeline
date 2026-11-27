@@ -258,7 +258,12 @@ function NameColor({
   toast: string | null;
   myId: string;
 }) {
+  const teams = Boolean(pub?.settings.teams);
+  const maxLen = teams ? 14 : 10;
   const [name, setName] = useState(() => localStorage.getItem('tt:name') ?? '');
+  const [m1, setM1] = useState('');
+  const [m2, setM2] = useState('');
+  const [m3, setM3] = useState('');
   const [reclaim, setReclaim] = useState(false);
   const taken = new Set(pub?.players.map((p) => p.color) ?? []);
   const free = PLAYER_COLORS.filter((c) => !taken.has(c.hex));
@@ -321,11 +326,13 @@ function NameColor({
             disabled={!ok || busy}
             data-testid="meedoen"
             onClick={() => {
-              localStorage.setItem('tt:name', name.trim());
-              send('join', { name: name.trim(), color: chosen });
+              const trimmed = name.trim().slice(0, maxLen);
+              localStorage.setItem('tt:name', trimmed);
+              const members = teams ? [m1, m2, m3].map((x) => x.trim()).filter(Boolean) : [];
+              send('join', members.length ? { name: trimmed, color: chosen, members } : { name: trimmed, color: chosen });
             }}
           >
-            {busy ? 'Bezig…' : spectate ? 'Kijk mee' : inLobby ? 'Ik doe mee' : 'Stap in'}
+            {busy ? 'Bezig…' : spectate ? 'Kijk mee' : inLobby ? (teams ? 'Team doet mee' : 'Ik doe mee') : 'Stap in'}
           </button>
           {pub && pub.players.length > 0 && (
             <button className="pbtn sec" style={{ flex: '0 0 52px', width: '100%' }} onClick={() => setReclaim(true)} data-testid="ik-speelde-al">
@@ -349,21 +356,40 @@ function NameColor({
             </div>
           )}
           <div className="ph1" style={{ marginTop: 6 }}>
-            Hoe heet je?
+            {teams ? 'Hoe heet jullie team?' : 'Hoe heet je?'}
           </div>
+          {teams && (
+            <div className="ph2" style={{ marginBottom: 4 }}>
+              1 telefoon per team (2 of 3 spelers). Iedereen in het team drinkt mee!
+            </div>
+          )}
           <label className="input" style={{ position: 'relative' }}>
             <input
               className="input"
               style={{ border: 0, background: 'transparent', margin: 0, padding: 0, height: 56 }}
-              value={name}
-              maxLength={10}
-              placeholder="Je naam"
+              value={name.slice(0, maxLen)}
+              maxLength={maxLen}
+              placeholder={teams ? 'Teamnaam, bv. De Hits' : 'Je naam'}
               autoComplete="given-name"
               data-testid="naam"
-              onChange={(e) => setName(e.target.value.slice(0, 10))}
+              onChange={(e) => setName(e.target.value.slice(0, maxLen))}
             />
-            <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--gedempt)' }}>{name.length}/10</span>
+            <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--gedempt)' }}>
+              {Math.min(name.length, maxLen)}/{maxLen}
+            </span>
           </label>
+          {teams && (
+            <>
+              <div className="ph2" style={{ marginTop: 14, fontWeight: 700, color: 'var(--creme)' }}>
+                Teamleden (2 of 3 namen, optioneel)
+              </div>
+              <div className="teammem-grid">
+                <input className="teammem-in" maxLength={12} placeholder="Speler 1" value={m1} onChange={(e) => setM1(e.target.value)} />
+                <input className="teammem-in" maxLength={12} placeholder="Speler 2" value={m2} onChange={(e) => setM2(e.target.value)} />
+                <input className="teammem-in" maxLength={12} placeholder="Speler 3" value={m3} onChange={(e) => setM3(e.target.value)} />
+              </div>
+            </>
+          )}
           <div className="ph1" style={{ marginTop: 22, fontSize: 20 }}>
             Kies je kleur
           </div>
@@ -406,7 +432,12 @@ function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: Public
         {pub.players.map((p) => (
           <div key={p.id} className="li">
             <Avatar p={p} all={pub.players} />
-            {p.name}
+            <div style={{ minWidth: 0 }}>
+              <div>{p.name}</div>
+              {pub.settings.teams && p.members?.length ? (
+                <div style={{ fontSize: 13, color: 'var(--gedempt)', fontWeight: 600 }}>{p.members.join(' · ')}</div>
+              ) : null}
+            </div>
             <span className="r">{p.id === me.id ? 'jij' : p.id === pub.hostId ? 'host' : '✓'}</span>
           </div>
         ))}
@@ -448,6 +479,34 @@ function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: Public
               </button>
             ))}
           </div>
+          <div className="lbl">Speelwijze</div>
+          <div className="seg">
+            <button className={!pub.settings.teams ? 'on' : ''} onClick={() => send('settings', { teams: false })} data-testid="teams-uit">
+              Individueel
+            </button>
+            <button className={pub.settings.teams ? 'on' : ''} onClick={() => send('settings', { teams: true })} data-testid="teams-aan">
+              👥 Teams (2–3)
+            </button>
+          </div>
+          {pub.settings.teams && (
+            <div className="ph2" style={{ fontSize: 14 }}>
+              1 telefoon per team van 2 of 3 spelers. Ideaal met 8–9 man!
+            </div>
+          )}
+          <div className="lbl">Drankspel 🍺</div>
+          <div className="seg">
+            <button className={!pub.settings.drinking ? 'on' : ''} onClick={() => send('settings', { drinking: false })} data-testid="drank-uit">
+              Uit
+            </button>
+            <button className={pub.settings.drinking ? 'on' : ''} onClick={() => send('settings', { drinking: true })} data-testid="drank-aan">
+              🍺 Aan
+            </button>
+          </div>
+          {pub.settings.drinking && (
+            <div className="ph2" style={{ fontSize: 14 }}>
+              Mis 2🍺 · Gestolen 3🍺 + 2 uitdelen · Foute steal 2🍺 · Perfect 2 uitdelen · Laatste 1🍺 · Verliezer = bak trekken!
+            </div>
+          )}
           <div className="lbl">Emoji-reacties op de tv</div>
           <div className="seg">
             <button className={pub.settings.reactions ? 'on' : ''} onClick={() => send('settings', { reactions: true })} data-testid="reacties-aan">
@@ -465,7 +524,11 @@ function Waiting({ pub, me, send, busy, isHost }: { pub: PublicState; me: Public
             onClick={() => send('start')}
             data-testid="start"
           >
-            {busy.start ? 'Bezig…' : enough ? `Start het spel (${pub.players.length} spelers)` : 'Wacht op minstens 2 spelers'}
+            {busy.start
+              ? 'Bezig…'
+              : enough
+                ? `Start het spel (${pub.players.length} ${pub.settings.teams ? 'teams' : 'spelers'})`
+                : `Wacht op minstens 2 ${pub.settings.teams ? 'teams' : 'spelers'}`}
           </button>
         </>
       )}
@@ -478,10 +541,12 @@ function explainPhone({ pub, me, send, busy, isHost }: { pub: PublicState; me: P
   const lv = pub.settings.level;
   const steps = [
     '1 · Luister naar het nummer op de tv',
-    `2 · Tik waar hij in jouw tijdlijn hoort${lv === 'expert' ? ' en kies het jaar' : ''}`,
+    `2 · Tik waar hij in ${pub.settings.teams ? 'jullie' : 'jouw'} tijdlijn hoort${lv === 'expert' ? ' en kies het jaar' : ''}`,
     '3 · Vastzetten. Anderen mogen 10 s stelen',
     lv === 'original' ? '4 · Titel + artiest hardop goed = +1 token' : '4 · Titel + artiest hardop: verplicht om de kaart te houden',
-    `5 · Eerste met ${g} kaarten wint`,
+    `5 · Eerste ${pub.settings.teams ? 'team ' : ''}met ${g} kaarten wint`,
+    ...(pub.settings.teams ? ['👥 Teams (2–3): 1 telefoon per team · heel het team drinkt mee'] : []),
+    ...(pub.settings.drinking ? ['🍺 Drankspel: kijk op de tv & je telefoon wie er drinkt. Verliezer = bak trekken!'] : []),
   ];
   const ready = pub.explainReady.includes(me.id);
   return {
@@ -725,6 +790,7 @@ function OthersTurn({ pub, me, active, send, common, spectator }: { pub: PublicS
           {active.name} is aan de beurt
         </div>
         <div className="ph2">{sub}</div>
+        {!spectator && pub.phase === 'turnStart' && <PhoneDrinkBanner pub={pub} me={me} send={send} />}
         <PhoneTimeline
           cards={active.cards}
           slot={pub.turn?.slot ?? null}
@@ -737,9 +803,105 @@ function OthersTurn({ pub, me, active, send, common, spectator }: { pub: PublicS
   );
 }
 
+// ---------------- drankspel-kaart (telefoon) ----------------
+
+function PhoneDrinkBanner({
+  pub,
+  me,
+  send,
+}: {
+  pub: PublicState;
+  me: { id: string; members?: string[] };
+  send?: Send;
+}) {
+  const drinking = pub.settings.drinking;
+  const teams = pub.settings.teams;
+  const list = drinking ? (pub.drinks ?? []).filter((d) => d.kind !== 'bak') : [];
+  const forMe = list.filter(
+    (d) =>
+      d.kind === 'all' ||
+      (d.kind === 'drink' && d.playerId === me.id) ||
+      (d.kind === 'give' && (d.playerId === me.id || d.targetId === me.id)),
+  );
+  const myDrinkKey = forMe
+    .filter((d) => d.kind === 'all' || d.kind === 'drink' || (d.kind === 'give' && d.targetId === me.id))
+    .map((d) => `${d.id}:${d.targetId ?? ''}`)
+    .join(',');
+  const lastVib = useRef('');
+  useEffect(() => {
+    if (myDrinkKey && myDrinkKey !== lastVib.current) {
+      lastVib.current = myDrinkKey;
+      vibrate([120, 60, 120]);
+    }
+  }, [myDrinkKey]);
+  if (!forMe.length) return null;
+  const others = pub.players.filter((x) => x.id !== me.id);
+  const memberStr = teams && me.members?.length ? ` (${me.members.join(', ')})` : '';
+  return (
+    <div className="pdrink-wrap" data-testid="telefoon-drank">
+      {forMe.map((d) => {
+        const sipTxt = `${d.sips} ${d.sips === 1 ? 'slok' : 'slokken'}`;
+        if (d.kind === 'give' && d.playerId === me.id) {
+          if (d.targetId) {
+            const tgt = pub.players.find((x) => x.id === d.targetId);
+            return (
+              <div key={d.id} className="pdrink done">
+                <b>✓ {sipTxt} uitgedeeld aan {tgt?.name ?? '?'} 🍺</b>
+              </div>
+            );
+          }
+          return (
+            <div key={d.id} className="pdrink give">
+              <div className="pdrink-h">👉 Deel {sipTxt} uit!</div>
+              <div className="pdrink-s">{d.reason} · tik wie er moet drinken:</div>
+              {send && (
+                <div className="pgive-btns">
+                  {others.map((o) => (
+                    <button
+                      key={o.id}
+                      className="pgive-btn"
+                      onClick={() => send('giveSips', { drinkId: d.id, targetId: o.id })}
+                      data-testid={`geef-slok-${o.name}`}
+                    >
+                      <Avatar p={o} all={pub.players} style={{ width: 28, height: 28, fontSize: 14 }} />
+                      <span>{o.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
+        const from = d.kind === 'give' && d.playerId ? pub.players.find((x) => x.id === d.playerId)?.name : null;
+        return (
+          <div key={d.id} className={`pdrink ${d.kind === 'all' ? 'all' : 'take'}`}>
+            <div className="pdrink-h">
+              🍺 {teams ? `Heel je team: ${sipTxt}!` : `Neem ${sipTxt}!`}
+            </div>
+            <div className="pdrink-s">
+              {from ? `Uitgedeeld door ${from}` : d.reason}
+              {memberStr}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------------- resultaat ----------------
 
-function Result({ pub, me, active }: { pub: PublicState; me: { id: string; color: string; cards: Card[]; tokens: number }; active: PublicPlayer }) {
+function Result({
+  pub,
+  me,
+  active,
+  send,
+}: {
+  pub: PublicState;
+  me: { id: string; color: string; cards: Card[]; tokens: number; members?: string[] };
+  active: PublicPlayer;
+  send?: Send;
+}) {
   const r = pub.reveal!;
   const card: Card = { songId: r.song.id, year: r.song.year, title: r.song.title, artist: r.song.artist };
   const mine = active.id === me.id;
@@ -837,6 +999,7 @@ function Result({ pub, me, active }: { pub: PublicState; me: { id: string; color
       <div className="ph2" style={{ marginTop: 22 }}>
         {foot}
       </div>
+      <PhoneDrinkBanner pub={pub} me={me} send={send} />
       {myGuess && (
         <div className={`guessres ${myGuess.correct ? 'ok' : ''}`} data-testid={myGuess.correct ? 'gok-goed' : 'gok-mis'}>
           {myGuess.correct ? 'Jij zat goed 👂' : 'Je gok zat ernaast'}
@@ -1023,6 +1186,7 @@ function useObjection({ pub, me, offset, send, busy }: { pub: PublicState; me: P
           <div className="ph2" style={{ marginTop: 10 }}>
             {txt}
           </div>
+          <PhoneDrinkBanner pub={pub} me={me} send={send} />
         </div>
       ),
       act: null,
@@ -1300,7 +1464,7 @@ function turnsUntil(pub: PublicState, meIdx: number): number {
   return (meIdx - pub.turnIndex + n) % n;
 }
 
-function StandingsPhone({ pub, me, hideTitle }: { pub: PublicState; me: { id: string }; hideTitle?: boolean }) {
+function StandingsPhone({ pub, me, send, hideTitle }: { pub: PublicState; me: { id: string; members?: string[] }; send?: Send; hideTitle?: boolean }) {
   const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
   const pos = rows.findIndex((p) => p.id === me.id) + 1;
   const next = pub.players[pub.turnIndex];
@@ -1313,6 +1477,7 @@ function StandingsPhone({ pub, me, hideTitle }: { pub: PublicState; me: { id: st
         {pos > 0 ? `Jij staat ${pos}e. ` : ''}Volgende beurt: {next?.id === me.id ? 'jij!' : next?.name}.
         {until > 0 ? ` Jij bent over ${until} ${until === 1 ? 'beurt' : 'beurten'}.` : ''}
       </div>
+      {!hideTitle && <PhoneDrinkBanner pub={pub} me={me} send={send} />}
       <div className="list">
         {rows.slice(0, 6).map((p, i) => (
           <div key={p.id} className="li" style={p.id === me.id ? { boxShadow: '0 0 0 2px var(--amber)' } : undefined}>
@@ -1328,16 +1493,24 @@ function StandingsPhone({ pub, me, hideTitle }: { pub: PublicState; me: { id: st
   );
 }
 
-function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: { id: string; cards: Card[] }; send: Send; isHost: boolean }) {
+function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: { id: string; cards: Card[]; members?: string[] }; send: Send; isHost: boolean }) {
   const w = pub.players.find((p) => p.id === pub.winnerId)!;
   const mine = w.id === me.id;
-  const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length);
+  const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
   const pos = rows.findIndex((p) => p.id === me.id) + 1;
   const prizes = pub.awards.filter((a) => a.playerId === me.id);
   const prizeTxt = prizes.map((a) => `${a.icon} ${a.title}`).join(', ');
+  const bakIds = pub.settings.drinking ? (pub.drinks ?? []).filter((d) => d.kind === 'bak').map((d) => d.playerId) : [];
+  const isBak = bakIds.includes(me.id);
+  const bakNames = bakIds
+    .map((id) => pub.players.find((x) => x.id === id)?.name)
+    .filter(Boolean)
+    .join(' & ');
+  const teams = pub.settings.teams;
   useEffect(() => {
     if (mine) vibrate([100, 80, 100, 80, 100]);
-  }, [mine]);
+    else if (isBak) vibrate([220, 90, 220, 90, 320]);
+  }, [mine, isBak]);
   const hostBtns = isHost ? (
     <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <button
@@ -1361,15 +1534,21 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: { id: st
   return (
     <div
       className="phone app"
-      data-testid={mine ? 'winnaar-ik' : 'winnaar-ander'}
-      style={mine ? { background: 'radial-gradient(500px 500px at 50% 35%,#ffcd73,var(--amber) 55%,#b56a0f)', color: 'var(--inkt)' } : undefined}
+      data-testid={mine ? 'winnaar-ik' : isBak ? 'verliezer-bak' : 'winnaar-ander'}
+      style={
+        mine
+          ? { background: 'radial-gradient(500px 500px at 50% 35%,#ffcd73,var(--amber) 55%,#b56a0f)', color: 'var(--inkt)' }
+          : isBak
+            ? { background: 'radial-gradient(500px 500px at 50% 35%,#ff6b7a,#b81d33 65%,#3b0915)', color: '#fff' }
+            : undefined
+      }
     >
       <div className="full" style={{ paddingBottom: isHost ? 170 : 30 }}>
         {mine ? (
           <>
             <div style={{ fontSize: 110, lineHeight: 1 }}>👑</div>
             <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 1.05, marginTop: 10 }} className="disp">
-              Jij bent de
+              {teams ? 'Jullie zijn de' : 'Jij bent de'}
               <br />
               Tune Master!
             </div>
@@ -1381,6 +1560,28 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: { id: st
                   Prijs: {prizeTxt}
                 </>
               ) : null}
+              {bakNames ? (
+                <>
+                  <br />
+                  🍺 Bak trekken: {bakNames}
+                </>
+              ) : null}
+            </div>
+          </>
+        ) : isBak ? (
+          <>
+            <div style={{ fontSize: 110, lineHeight: 1 }}>🍺</div>
+            <div style={{ fontSize: 48, fontWeight: 900, lineHeight: 1.05, marginTop: 10 }} className="disp">
+              {teams ? 'HEEL HET TEAM' : 'BAK'}
+              <br />
+              {teams ? 'TREKT EEN BAK!' : 'TREKKEN!'}
+            </div>
+            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 14, opacity: 0.95 }}>
+              {teams && me.members?.length ? `${me.members.join(' · ')} — ` : ''}
+              Laatste plek met {me.cards.length} kaarten · glas atten!
+            </div>
+            <div style={{ fontSize: 17, fontWeight: 600, marginTop: 10, opacity: 0.85 }}>
+              👑 {w.name} won het potje
             </div>
           </>
         ) : (
@@ -1391,6 +1592,9 @@ function WinnerPhone({ pub, me, send, isHost }: { pub: PublicState; me: { id: st
               {pos > 0 ? `Jij werd ${pos}e met ${me.cards.length} kaarten.` : 'Bedankt voor het meekijken!'}
               {prizeTxt ? ` Prijs: ${prizeTxt}.` : ''}
             </div>
+            {bakNames && (
+              <div className="pbak">🍺 Bak trekken: {bakNames}!</div>
+            )}
           </>
         )}
         <div style={{ fontSize: 16, fontWeight: 600, marginTop: 24, opacity: 0.75 }}>Kijk naar de tv</div>
@@ -1572,13 +1776,13 @@ export default function PhoneApp() {
       break;
     }
     case 'reveal':
-      if (p.reveal && active) body = <Result pub={p} me={me} active={active} />;
+      if (p.reveal && active) body = <Result pub={p} me={me} active={active} send={ph.send} />;
       break;
     case 'objection':
       if (p.objection && p.reveal) return <ObjectionPhone pub={p} me={me} offset={ph.offset} send={ph.send} busy={ph.busy} common={common} />;
       break;
     case 'standings':
-      body = <StandingsPhone pub={p} me={me} />;
+      body = <StandingsPhone pub={p} me={me} send={ph.send} />;
       act = reacts;
       break;
   }

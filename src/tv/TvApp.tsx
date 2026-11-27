@@ -60,6 +60,90 @@ function names(list: string[]) {
   return `${list.slice(0, -1).join(', ')} en ${list[list.length - 1]}`;
 }
 
+function teamLabel(p: { name: string; members?: string[] } | undefined, teams: boolean) {
+  if (!p) return '?';
+  if (teams && p.members?.length) return `${p.name} (${p.members.join(', ')})`;
+  return p.name;
+}
+
+/** Drankspel-balk op de tv: toont wie er moet drinken of slokken mag uitdelen. */
+function DrinkBar({ s, delayed, top }: { s: GameState; delayed?: boolean; top?: number }) {
+  if (!s.settings.drinking) return null;
+  const list = (s.drinks ?? []).filter((d) => d.kind !== 'bak');
+  if (!list.length) return null;
+  const pub = toPublic(s).players;
+  const teams = s.settings.teams;
+  return (
+    <div
+      className={`drinkbar ${delayed ? 'reveal-sub' : ''}`}
+      style={top !== undefined ? { top } : undefined}
+      data-testid="tv-drank"
+    >
+      {list.map((d) => {
+        const who = d.playerId ? nm(s, d.playerId) : undefined;
+        const whoPub = d.playerId ? pub.find((x) => x.id === d.playerId) : undefined;
+        const target = d.targetId ? nm(s, d.targetId) : undefined;
+        const targetPub = d.targetId ? pub.find((x) => x.id === d.targetId) : undefined;
+        const sipTxt = `${d.sips} ${d.sips === 1 ? 'slok' : 'slokken'}`;
+        if (d.kind === 'all') {
+          return (
+            <div key={d.id} className="dpill all">
+              <span className="dic">🍻</span>
+              <div>
+                <b>IEDEREEN: {sipTxt}!</b>
+                <span>{d.reason}</span>
+              </div>
+            </div>
+          );
+        }
+        if (d.kind === 'give') {
+          if (target && targetPub) {
+            return (
+              <div key={d.id} className="dpill given">
+                <Avatar p={targetPub} all={pub} style={{ width: 44, height: 44, fontSize: 22 }} />
+                <div>
+                  <b>
+                    🍺 {teamLabel(target, teams)}: {sipTxt}!
+                  </b>
+                  <span>
+                    uitgedeeld door {who?.name ?? '?'}
+                    {teams ? ' · heel het team drinkt!' : ''}
+                  </span>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={d.id} className="dpill give">
+              {whoPub && <Avatar p={whoPub} all={pub} style={{ width: 44, height: 44, fontSize: 22 }} />}
+              <div>
+                <b>
+                  👉 {who?.name ?? '?'} deelt {sipTxt} uit!
+                </b>
+                <span>{d.reason} · kies op je telefoon</span>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div key={d.id} className="dpill drink">
+            {whoPub && <Avatar p={whoPub} all={pub} style={{ width: 44, height: 44, fontSize: 22 }} />}
+            <div>
+              <b>
+                🍺 {teamLabel(who, teams)}: {sipTxt}!
+              </b>
+              <span>
+                {d.reason}
+                {teams ? ' · heel het team!' : ''}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ---------------- bovenbalk: vlaggen per fase ----------------
 
 type Flags = Record<string, { flag?: string; mp?: boolean }>;
@@ -319,9 +403,11 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean 
       <div className="right">
         <div className="seatshead">
           <div className="n num">{n}</div>
-          <div className="s">van max 10 spelers · in speelvolgorde</div>
+          <div className="s">
+            {s.settings.teams ? 'van max 10 teams (2–3 pers.) · 1 telefoon per team' : 'van max 10 spelers · in speelvolgorde'}
+          </div>
         </div>
-        <div className="seats" style={{ marginTop: 60 }}>
+        <div className="seats" style={{ marginTop: 50 }}>
           {Array.from({ length: 10 }, (_, i) => {
             const p = pub[i];
             return (
@@ -337,7 +423,12 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean 
                 {p ? (
                   <>
                     <Avatar p={p} all={pub} />
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                      {s.settings.teams && p.members?.length ? (
+                        <div className="seatmem">{p.members.join(' · ')}</div>
+                      ) : null}
+                    </div>
                   </>
                 ) : (
                   <span style={{ fontSize: 24 }}>vrij</span>
@@ -348,7 +439,7 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean 
         </div>
         {n >= 8 && s.settings.goal > 8 && (
           <div className="advice" data-testid="advies">
-            Advies bij {n} spelers: doel 8 ({formatMinutes(estimateMinutes(n, 8, s.settings.placeSeconds, lv))})
+            Advies bij {n} {s.settings.teams ? 'teams' : 'spelers'}: doel 8 ({formatMinutes(estimateMinutes(n, 8, s.settings.placeSeconds, lv))})
           </div>
         )}
         <div className="settings">
@@ -358,12 +449,16 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean 
           </div>
           <div className="pill">Doel: {s.settings.goal} kaarten</div>
           <div className="pill">Plaatsen: {s.settings.placeSeconds ? `${s.settings.placeSeconds} s` : 'geen timer'}</div>
+          {s.settings.teams && <div className="pill hi">👥 Teams (2–3)</div>}
+          {s.settings.drinking && <div className="pill hi">🍺 Drankspel aan</div>}
           <div className="pill est" data-testid="speelduur">
             Geschatte speelduur {est}
           </div>
         </div>
-        <div style={{ textAlign: 'center', marginTop: 44, fontSize: 30, color: 'var(--gedempt)', fontWeight: 600 }}>
-          {n < 2 ? 'Wachten op minstens 2 spelers…' : `${pub.find((p) => p.id === s.hostId)?.name ?? 'De host'} start het spel op de telefoon`}
+        <div style={{ textAlign: 'center', marginTop: 36, fontSize: 30, color: 'var(--gedempt)', fontWeight: 600 }}>
+          {n < 2
+            ? `Wachten op minstens 2 ${s.settings.teams ? 'teams' : 'spelers'}…`
+            : `${pub.find((p) => p.id === s.hostId)?.name ?? 'De host'} start het spel op de telefoon`}
           {!s.settings.reactions && ' · reacties staan uit'}
         </div>
       </div>
@@ -374,18 +469,26 @@ function Lobby({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean 
 function Explain({ s, room, lokaal, onDone }: { s: GameState; room: Room; lokaal: boolean; onDone: () => void }) {
   const goal = s.settings.goal;
   const lv = s.settings.level;
+  const drinking = s.settings.drinking;
+  const teams = s.settings.teams;
   const others = s.players.filter((p) => p.id !== s.hostId);
   const ready = s.explainReady.filter((id) => others.some((p) => p.id === id)).length;
   const host = nm(s, s.hostId);
   const keep = lv === 'pro' ? ' + titel + artiest' : lv === 'expert' ? ' + titel + artiest + exact jaar' : '';
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setStep((cur) => (cur + 1) % 4), 4500);
+    return () => clearInterval(id);
+  }, []);
+  const compact = drinking || teams;
   return (
     <>
-      <div style={{ position: 'absolute', top: 70, left: 0, right: 0, textAlign: 'center' }}>
+      <div style={{ position: 'absolute', top: 48, left: 0, right: 0, textAlign: 'center' }}>
         <div className="logo" style={{ justifyContent: 'center' }}>
           <Logo />
           Zo werkt het
         </div>
-        <div style={{ fontSize: 32, color: 'var(--gedempt)', marginTop: 16, fontWeight: 600 }}>
+        <div style={{ fontSize: 30, color: 'var(--gedempt)', marginTop: 12, fontWeight: 600 }}>
           4 stappen · {host?.name ?? 'de host'} tikt “Begrepen” als iedereen klaar is
           {others.length > 0 && (
             <>
@@ -395,54 +498,147 @@ function Explain({ s, room, lokaal, onDone }: { s: GameState; room: Room; lokaal
           )}
         </div>
       </div>
-      <div className="uitleg" data-testid="uitleg">
-        <div className="ublok on">
-          <div className="nr">1</div>
-          <h4>Luister</h4>
-          <p>De tv speelt een nummer. Niemand ziet titel of jaar.</p>
-          <div className="mini">
-            <i className="m" />
+      <div className={`uitleg ${compact ? 'compact' : ''}`} data-testid="uitleg">
+        <div className={`ublok ${step === 0 ? 'on' : ''}`} onClick={() => setStep(0)}>
+          <div className="utop">
+            <div className="nr">1</div>
+            <h4>Luister</h4>
           </div>
+          <div className="visbox vis-listen" aria-hidden="true">
+            <div className="vinyl">
+              <i />
+            </div>
+            <div className="vnotes">
+              <span>♪</span>
+              <span>♫</span>
+            </div>
+            <div className="vmys">
+              <div className="eq">
+                <i />
+                <i />
+                <i />
+              </div>
+              <b>?</b>
+            </div>
+          </div>
+          <p>De tv speelt een hit. Niemand ziet jaar of titel.</p>
         </div>
-        <div className="ublok">
-          <div className="nr">2</div>
-          <h4>Leg 'm neer</h4>
+
+        <div className={`ublok ${step === 1 ? 'on' : ''}`} onClick={() => setStep(1)}>
+          <div className="utop">
+            <div className="nr">2</div>
+            <h4>Leg ’m neer</h4>
+          </div>
+          <div className="visbox vis-place" aria-hidden="true">
+            <div className="vcard">&apos;78</div>
+            <div className="vslot">
+              <div className="vdrop">
+                <span className="vq">?</span>
+                <span className="vy">&apos;87 ✓</span>
+              </div>
+            </div>
+            <div className="vcard">&apos;95</div>
+            <div className="vcard">&apos;12</div>
+          </div>
           <p>
-            Tik op je telefoon waar hij in jouw tijdlijn hoort{lv === 'expert' ? ' en kies het jaar' : ''}. Dan Vastzetten.
+            Kies op {teams ? 'jullie' : 'je'} telefoon waar hij hoort{lv === 'expert' ? ' + exact jaar' : ''} → Vastzetten.
           </p>
-          <div className="mini">
-            <i />
-            <i className="m" />
-            <i />
-          </div>
         </div>
-        <div className="ublok">
-          <div className="nr">3</div>
-          <h4>Steel!</h4>
-          <p>Denk je dat een ander fout zit? 1 token, kies de goede plek.</p>
-          <div className="mini">
-            <i />
-            <i style={{ background: 'var(--violet)' }} />
-            <i />
+
+        <div className={`ublok ${step === 2 ? 'on' : ''}`} onClick={() => setStep(2)}>
+          <div className="utop">
+            <div className="nr">3</div>
+            <h4>Steel!</h4>
           </div>
+          <div className="visbox vis-steal" aria-hidden="true">
+            <div className="vcard">&apos;82</div>
+            <div className="vstealgap">
+              <span className="vchip">🦊</span>
+              <span className="vminus">−1 🪙</span>
+            </div>
+            <div className="vcard">&apos;04</div>
+          </div>
+          <p>Zit een ander fout? 10 s om met 1 token de goede plek te stelen!</p>
         </div>
-        <div className="ublok">
-          <div className="nr">4</div>
-          <h4>{goal} wint</h4>
+
+        <div className={`ublok ${step === 3 ? 'on' : ''}`} onClick={() => setStep(3)}>
+          <div className="utop">
+            <div className="nr">4</div>
+            <h4>{goal} wint</h4>
+          </div>
+          <div className="visbox vis-win" aria-hidden="true">
+            <div className="vcrown">👑</div>
+            <div className="vpips">
+              {Array.from({ length: Math.min(goal, 8) }, (_, i) => (
+                <i key={i} style={{ animationDelay: `${i * 0.14}s` }} />
+              ))}
+            </div>
+            <div className="vcoinrow">
+              <span className="coin" style={{ display: 'inline-block', width: 32, height: 32 }} />
+              <b>{lv === 'original' ? 'Titel + artiest = +1' : 'Titel + artiest verplicht'}</b>
+            </div>
+          </div>
           <p>
-            Eerste met {goal} kaarten goed op volgorde wint.{' '}
-            {lv === 'original' ? 'Titel + artiest goed = +1 token.' : `Kaart houden = goede plek${keep}.`}
+            Eerste {teams ? 'team ' : ''}met {goal} kaarten op volgorde wint.{lv === 'original' ? '' : ` Kaart houden = plek${keep}.`}
           </p>
-          <div className="mini">
-            <span className="coin" style={{ display: 'block', width: 44, height: 44 }} />
-            <span style={{ fontSize: 34, fontWeight: 800, marginLeft: 8 }}>+1</span>
-          </div>
         </div>
       </div>
-      <button className="btn-tv sec tvclick" style={{ position: 'absolute', right: 90, top: 800 }} onClick={onDone} data-testid="tv-begrepen">
+
+      {compact && (
+        <div className="udrink" data-testid="uitleg-drank">
+          {teams && (
+            <div className="udbadge team">
+              <span>👥</span>
+              <b>Teams (2–3 pers.)</b>
+              <small>1 telefoon per team · heel het team drinkt mee</small>
+            </div>
+          )}
+          {drinking && (
+            <div className="udrules">
+              <div className="udr">
+                <b>✕ Mis</b>
+                <span>2 🍺</span>
+              </div>
+              <div className="udr">
+                <b>🦊 Gestolen</b>
+                <span>3 🍺 + 2 uitdelen</span>
+              </div>
+              <div className="udr">
+                <b>⚡ Foute steal</b>
+                <span>2 🍺</span>
+              </div>
+              <div className="udr">
+                <b>⭐ Perfect</b>
+                <span>2 🍺 uitdelen</span>
+              </div>
+              <div className="udr">
+                <b>🏁 Laatste / Niemand goed</b>
+                <span>1 🍺</span>
+              </div>
+              <div className="udr bak">
+                <b>💀 Verliezer</b>
+                <span>BAK TREKKEN!</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        className="btn-tv sec tvclick"
+        style={{ position: 'absolute', right: 90, top: compact ? 872 : 800 }}
+        onClick={onDone}
+        data-testid="tv-begrepen"
+      >
         Begrepen (tv)
       </button>
-      <Bottombar ph="Uitleg" sub="Shazam = je bent af" frac={0.5} room={room} lokaal={lokaal} />
+      <Bottombar
+        ph="Uitleg"
+        sub={drinking ? 'Shazam = bak trekken 🍺' : 'Shazam = je bent af'}
+        frac={(step + 1) / 4}
+        room={room}
+        lokaal={lokaal}
+      />
     </>
   );
 }
@@ -522,7 +718,8 @@ function TurnStart({ s, room, lokaal }: { s: GameState; room: Room; lokaal: bool
         </div>
       </div>
       <TvTimeline cards={p.cards} slide />
-      <div className="banner">
+      <DrinkBar s={s} top={805} />
+      <div className="banner" style={s.settings.drinking && s.drinks?.length ? { top: 896 } : undefined}>
         Muziek start over <b className="num">{left}</b> ·{' '}
         {p.tokens >= 3 ? (
           <>
@@ -823,7 +1020,10 @@ function Reveal({ s, room, lokaal }: { s: GameState; room: Room; lokaal: boolean
         />
       )}
       {thief && <FlyToChip card={card} to={thief.id} delay={2100} />}
-      <div className="banner reveal-sub">{bannerParts.join(' · ')}</div>
+      <DrinkBar s={s} delayed top={828} />
+      <div className="banner reveal-sub" style={s.settings.drinking && s.drinks?.length ? { top: 904, fontSize: 24 } : undefined}>
+        {bannerParts.join(' · ')}
+      </div>
       <Bottombar ph="Onthulling" sub={`${song.artist} — ${song.title}`} frac={1} room={room} lokaal={lokaal} />
     </>
   );
@@ -907,6 +1107,7 @@ function ObjectionScreen({ s, room, lokaal }: { s: GameState; room: Room; lokaal
           </div>
         )}
       </div>
+      {res && <DrinkBar s={s} top={800} />}
       <Bottombar ph="Bezwaar?" sub={res ? 'uitslag' : 'alleen tikken als het fout was · 6 s'} frac={res ? 1 : fracLeft(s, 6000 * tempo(s))} room={room} lokaal={lokaal} />
     </>
   );
@@ -939,6 +1140,7 @@ function Standings({ s, room, lokaal, paused }: { s: GameState; room: Room; loka
           <StandRow key={p.id} p={p} pos={i + 1} lead={i === 0} all={pub} goal={s.settings.goal} emo={emo[p.id]} />
         ))}
       </div>
+      {!paused && <DrinkBar s={s} top={840} />}
       <Bottombar
         ph={paused ? 'Pauze' : 'Tussenstand'}
         sub={paused ? 'de host gaat verder via het hostmenu' : `volgende beurt: ${next?.name} · 6 s`}
@@ -1001,10 +1203,14 @@ function Winner({ s }: { s: GameState }) {
   const w = s.players.find((p) => p.id === s.winnerId) as Player;
   const n = w.cards.length;
   const cw = n > 10 ? 130 : 150;
+  const baks = s.settings.drinking
+    ? (s.drinks ?? []).filter((d) => d.kind === 'bak').map((d) => nm(s, d.playerId)).filter(Boolean) as Player[]
+    : [];
+  const teams = s.settings.teams;
   return (
     <>
       <Confetti s={s} />
-      <div className="wtitle">
+      <div className="wtitle" style={baks.length ? { top: 150 } : undefined}>
         <div className="crown">👑</div>
         <div className="who namein">{w.name} wint!</div>
         <div className="s">
@@ -1012,7 +1218,16 @@ function Winner({ s }: { s: GameState }) {
           {w.stats.steals ? ` · ${w.stats.steals} keer gestolen` : ''}
         </div>
       </div>
-      <div className="wtl" style={{ gap: n > 10 ? 8 : 14 }}>
+      {baks.length > 0 && (
+        <div className="bakbanner" data-testid="tv-bak">
+          <span>🍺 BAK TREKKEN!</span>
+          <b>
+            {baks.map((b) => teamLabel(b, teams)).join(' & ')} —{' '}
+            {teams ? 'heel het team at zijn glas!' : baks.length > 1 ? 'allebei een glas atten!' : 'glas atten!'}
+          </b>
+        </div>
+      )}
+      <div className="wtl" style={{ gap: n > 10 ? 8 : 14, ...(baks.length ? { top: 675 } : {}) }}>
         {w.cards.map((c) => (
           <TvCard key={c.songId} c={c} w={cw} />
         ))}
@@ -1045,8 +1260,12 @@ function AwardRow({ s, awards }: { s: GameState; awards: ReturnType<typeof compu
 function Overview({ s }: { s: GameState }) {
   const pub = toPublic(s);
   const rows = [...pub.players].sort((a, b) => b.cards.length - a.cards.length || b.tokens - a.tokens);
-  const all = ['Beste oor', 'Meesterdief', 'Tijdreiziger', 'Bijna!'];
-  const icons: Record<string, string> = { 'Beste oor': '👂', Meesterdief: '🦊', Tijdreiziger: '⏳', 'Bijna!': '😬' };
+  const drinking = s.settings.drinking;
+  const teams = s.settings.teams;
+  const thirstyTitle = teams ? 'Dorstigste team' : 'Dorstigste speler';
+  const all = drinking ? ['Beste oor', 'Meesterdief', 'Tijdreiziger', 'Bijna!', thirstyTitle] : ['Beste oor', 'Meesterdief', 'Tijdreiziger', 'Bijna!'];
+  const icons: Record<string, string> = { 'Beste oor': '👂', Meesterdief: '🦊', Tijdreiziger: '⏳', 'Bijna!': '😬', [thirstyTitle]: '🍺' };
+  const bakIds = new Set(drinking ? (s.drinks ?? []).filter((d) => d.kind === 'bak').map((d) => d.playerId) : []);
   const who = (id: string) => s.players.find((p) => p.id === id)?.name ?? s.spectators.find((x) => x.id === id)?.name ?? '?';
   return (
     <div className="overview" data-testid="eindoverzicht">
@@ -1063,10 +1282,15 @@ function Overview({ s }: { s: GameState }) {
       <div className="ovgrid">
         <div className="ranks">
           {rows.map((p, i) => (
-            <div key={p.id} className={`rk ${i === 0 ? 'lead' : ''}`}>
+            <div key={p.id} className={`rk ${i === 0 ? 'lead' : ''} ${bakIds.has(p.id) ? 'bakrow' : ''}`}>
               <div className="pos num">{i + 1}</div>
               <Avatar p={p} all={pub.players} />
-              <b>{p.name}</b>
+              <b>
+                {p.name}
+                {teams && p.members?.length ? <small className="rkmem"> ({p.members.join(', ')})</small> : null}
+              </b>
+              {bakIds.has(p.id) && <span className="baktag">🍺 BAK!</span>}
+              {drinking && !bakIds.has(p.id) && p.sips !== undefined && <span className="siptag num">🍺 {p.sips}</span>}
               <span className="num">
                 {p.cards.length}/{s.settings.goal}
               </span>
@@ -1390,7 +1614,10 @@ export default function TvApp() {
         <SpectatorReactions s={s} />
       </div>
       {s.notice && (
-        <div className="toastTv tvnotice" style={s.phase === 'placing' ? { top: 130 } : undefined}>
+        <div
+          className={`toastTv tvnotice ${s.notice.kind === 'drink' ? 'drinktoast' : ''}`}
+          style={s.phase === 'placing' ? { top: 130 } : undefined}
+        >
           {s.notice.kind === 'songFailed' ? '⚠ ' : ''}
           {s.notice.text}
         </div>

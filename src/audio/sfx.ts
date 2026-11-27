@@ -120,5 +120,11 @@ export function play(sound: Sound, delayMs = 0) {
     case 'fanfare':
       [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, d + i * 0.18, i === 5 ? 1.2 : 0.22, 'triangle', 0.2));
       break;
+    case 'cheers':
+      // glas-klink geluidje voor drankspel
+      tone(2200, d, 0.16, 'sine', 0.14);
+      tone(2850, d + 0.03, 0.22, 'sine', 0.11);
+      tone(3400, d + 0.06, 0.18, 'triangle', 0.07);
+      break;
   }
 }

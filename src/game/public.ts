@@ -1,15 +1,17 @@
 // Publieke status: wat de telefoons mogen zien. Nooit geheimen, nooit de stapel,
 // en tijdens een beurt niets over het lopende nummer (CONCEPT 7.4).
-import type { Card, GameState, Notice, Objection, Phase, ReactionMsg, Reveal, Settings, StealClaim } from './types';
+import type { Card, DrinkAction, GameState, Notice, Objection, Phase, ReactionMsg, Reveal, Settings, StealClaim } from './types';
 
 export interface PublicPlayer {
   id: string;
   name: string;
+  members?: string[];
   color: string;
   cards: Card[];
   tokens: number;
   online: boolean;
   late?: boolean;
+  sips?: number;
 }
 
 export interface PublicSpectator {
@@ -77,6 +79,8 @@ export interface PublicState {
   canFlipVerdict: boolean;
   canFlipClaim: boolean;
   canSkipSong: boolean;
+  /** Drankspel: actieve drankmeldingen. */
+  drinks: DrinkAction[];
 }
 
 export function toPublic(s: GameState): PublicState {
@@ -89,11 +93,13 @@ export function toPublic(s: GameState): PublicState {
     players: s.players.map((p) => ({
       id: p.id,
       name: p.name,
+      ...(p.members?.length ? { members: p.members } : {}),
       color: p.color,
       cards: p.cards,
       tokens: p.tokens,
       online: p.online,
       ...(p.late ? { late: true } : {}),
+      ...(s.settings.drinking ? { sips: p.stats.sips ?? 0 } : {}),
     })),
     spectators: s.spectators.map((x) => ({ id: x.id, name: x.name, color: x.color, online: x.online })),
     hostId: s.hostId,
@@ -143,6 +149,7 @@ export function toPublic(s: GameState): PublicState {
     canFlipClaim: s.phase === 'objection' && !!s.objection?.result && s.objection.mode === 'earn',
     canSkipSong:
       s.deck.some((x) => !s.failedIds.includes(x.id)) || s.discard.some((x) => !s.failedIds.includes(x.id)),
+    drinks: s.drinks ?? [],
   };
 }
 
@@ -172,5 +179,18 @@ export function awards(s: GameState): Award[] {
       playerId: close.id,
       detail: `${close.stats.closestMiss} jaar mis`,
     });
+  if (s.settings.drinking) {
+    const thirsty = s.players
+      .filter((p) => (p.stats.sips ?? 0) > 0)
+      .sort((a, b) => (b.stats.sips ?? 0) - (a.stats.sips ?? 0))[0];
+    if (thirsty) {
+      out.push({
+        icon: '🍺',
+        title: s.settings.teams ? 'Dorstigste team' : 'Dorstigste speler',
+        playerId: thirsty.id,
+        detail: `${thirsty.stats.sips} slokken`,
+      });
+    }
+  }
   return out;
 }

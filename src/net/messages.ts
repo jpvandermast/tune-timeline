@@ -45,6 +45,7 @@ export const PHONE_INTENTS = [
   'removePlayer',
   'restartSong',
   'stopGame',
+  'giveSips',
 ] as const;
 export type IntentType = (typeof PHONE_INTENTS)[number];
 

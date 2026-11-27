@@ -524,3 +524,109 @@ input{font:inherit;color:inherit}
 @keyframes tokdrop2{from{transform:translate(-50%,-80px);opacity:0}to{transform:translateX(-50%);opacity:1}}
 .ocard .btns .btn-tv{white-space:nowrap}
 .ocard{width:auto;min-width:1000px;max-width:1500px}
+
+/* ======== drankspel, teams & visuele uitleg ======== */
+.pill.hi{background:rgba(255,178,63,.16);border:2px solid var(--amber);color:var(--amber)}
+.seatmem{font-size:17px;color:var(--gedempt);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+
+/* visuele uitleg op tv */
+.uitleg{top:210px}
+.uitleg.compact{top:196px}
+.uitleg.compact .ublok{min-height:420px;padding:24px 24px;gap:14px}
+.ublok{cursor:pointer;transition:border-color .25s,transform .25s,box-shadow .25s}
+.ublok.on{transform:translateY(-6px);box-shadow:0 16px 40px rgba(255,178,63,.18)}
+.utop{display:flex;align-items:center;gap:16px}
+.utop .nr{width:56px;height:56px;font-size:32px;flex:0 0 auto}
+.utop h4{font-size:38px}
+.uitleg .ublok p{font-size:25px;line-height:1.3}
+
+.visbox{height:175px;border-radius:18px;background:rgba(18,14,36,.65);border:2px solid var(--schemer);display:flex;align-items:center;justify-content:center;gap:12px;position:relative;overflow:hidden;padding:12px}
+.ublok.on .visbox{border-color:rgba(255,178,63,.6)}
+
+/* stap 1: vinyl + equalizer */
+.vinyl{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 50% 50%,var(--amber) 0 18%,var(--inkt) 19% 25%,#2d2650 26% 62%,#1b1535 63% 100%);box-shadow:0 0 0 3px var(--schemer);position:relative;animation:vspin 3.2s linear infinite}
+.vinyl i{position:absolute;inset:14px;border-radius:50%;border:2px dashed rgba(255,255,255,.18)}
+@keyframes vspin{to{transform:rotate(360deg)}}
+.vnotes{display:flex;flex-direction:column;gap:6px;font-size:32px;color:var(--amber);font-weight:900}
+.vnotes span{animation:vnote 1.6s ease-in-out infinite}
+.vnotes span:nth-child(2){animation-delay:-.8s;color:var(--violet)}
+@keyframes vnote{0%,100%{transform:translateY(4px);opacity:.6}50%{transform:translateY(-8px);opacity:1}}
+.vmys{width:84px;height:112px;border-radius:12px;background:var(--pruim2);border:3px solid var(--violet);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 0 24px rgba(122,92,255,.4)}
+.vmys .eq{height:34px;gap:5px}
+.vmys .eq i{width:8px;animation-name:veq}
+@keyframes veq{0%,100%{height:10px}50%{height:32px}}
+.vmys b{font:700 36px var(--disp);line-height:1}
+
+/* stap 2: kaart schuift in tijdlijn */
+.vcard{width:64px;height:86px;border-radius:10px;background:var(--papier);color:var(--inkt);font:700 24px var(--disp);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex:0 0 auto}
+.vcard::before{content:"";position:absolute;top:0;left:0;right:0;height:16px;background:var(--amber)}
+.vslot{width:72px;height:94px;border:3px dashed var(--amber);border-radius:12px;display:grid;place-items:center;position:relative}
+.vdrop{width:64px;height:86px;border-radius:10px;background:var(--mint);color:var(--inkt);display:grid;place-items:center;font:700 22px var(--disp);animation:vplace 3.2s ease-in-out infinite;box-shadow:0 0 22px rgba(52,224,143,.5)}
+.vdrop .vq{display:none}
+@keyframes vplace{0%{transform:translateY(-44px) scale(.85);background:var(--pruim2);color:var(--creme);box-shadow:0 0 0 2px var(--amber)}35%,55%{transform:translateY(0) scale(1);background:var(--pruim2);color:var(--creme);box-shadow:0 0 0 3px var(--amber)}70%,95%{transform:translateY(0) scale(1.04);background:var(--mint);color:var(--inkt);box-shadow:0 0 22px rgba(52,224,143,.6)}100%{transform:translateY(-44px);opacity:0}}
+
+/* stap 3: steelgat */
+.vstealgap{width:88px;height:104px;border:3px dashed var(--violet);border-radius:14px;background:rgba(122,92,255,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;animation:vstealpulse 1.8s ease-in-out infinite}
+.vchip{font-size:38px;animation:vdropchip 2.4s cubic-bezier(.3,1.5,.6,1) infinite}
+.vminus{font:700 20px var(--disp);color:#d7ccff;background:var(--violet);padding:2px 8px;border-radius:999px}
+@keyframes vstealpulse{50%{box-shadow:0 0 26px rgba(122,92,255,.65)}}
+@keyframes vdropchip{0%{transform:translateY(-30px) scale(.6);opacity:0}25%,80%{transform:none;opacity:1}100%{transform:translateY(6px);opacity:.4}}
+
+/* stap 4: doel + kroon */
+.vis-win{flex-direction:column;gap:12px}
+.vcrown{font-size:48px;line-height:1;animation:vcrown 1.8s ease-in-out infinite}
+@keyframes vcrown{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+.vpips{display:flex;gap:8px;width:85%}
+.vpips i{flex:1;height:12px;border-radius:6px;background:var(--mint);animation:vpip 2.4s ease-in-out infinite}
+@keyframes vpip{0%,20%{opacity:.25;transform:scaleY(.8)}50%,100%{opacity:1;transform:scaleY(1)}}
+.vcoinrow{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:700;color:var(--amber)}
+
+/* visuele drank & team strip in uitleg */
+.udrink{position:absolute;left:90px;right:90px;top:646px;display:flex;flex-direction:column;gap:14px}
+.udbadge.team{align-self:center;display:flex;align-items:center;gap:14px;background:rgba(255,178,63,.14);border:2px solid var(--amber);border-radius:999px;padding:10px 26px;font-size:26px}
+.udbadge.team small{color:var(--gedempt);font-weight:600;font-size:23px}
+.udrules{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.udr{background:var(--pruim);border:2px solid var(--schemer);border-radius:18px;padding:14px 16px;text-align:center;display:flex;flex-direction:column;gap:6px}
+.udr b{font-size:22px;color:var(--gedempt);font-weight:700}
+.udr span{font:700 26px var(--disp);color:var(--amber)}
+.udr.bak{background:rgba(255,77,94,.18);border-color:var(--rood)}
+.udr.bak b{color:#ffc4ca}
+.udr.bak span{color:#fff}
+
+/* tv drank-balk tijdens het spel */
+.drinkbar{position:absolute;left:60px;right:60px;top:828px;display:flex;justify-content:center;flex-wrap:wrap;gap:16px;z-index:25}
+.dpill{display:flex;align-items:center;gap:14px;padding:12px 24px;border-radius:18px;background:var(--pruim);border:3px solid var(--amber);box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.dpill.drink{border-color:var(--rood);background:linear-gradient(135deg,rgba(255,77,94,.22),var(--pruim))}
+.dpill.all{border-color:var(--amber);background:linear-gradient(135deg,rgba(255,178,63,.25),var(--pruim))}
+.dpill.give{border-color:var(--mint);background:linear-gradient(135deg,rgba(52,224,143,.22),var(--pruim))}
+.dpill.given{border-color:var(--amber);background:linear-gradient(135deg,rgba(255,178,63,.24),var(--pruim))}
+.dpill .dic{font-size:38px;line-height:1}
+.dpill b{display:block;font:700 28px var(--disp);color:var(--creme);line-height:1.1}
+.dpill span{display:block;font-size:20px;color:var(--gedempt);font-weight:600;margin-top:2px}
+.toastTv.drinktoast{background:linear-gradient(135deg,#FFB23F,#FF7B3F);color:var(--inkt);box-shadow:0 14px 40px rgba(255,178,63,.45)}
+
+/* tv bak trekken op winnaar & eindoverzicht */
+.bakbanner{position:absolute;left:50%;top:510px;transform:translateX(-50%);background:linear-gradient(135deg,#d9233c,#8a0f22);color:#fff;border:4px solid #ffd23f;border-radius:26px;padding:20px 44px;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 20px 60px rgba(0,0,0,.55);z-index:20;animation:pop .4s cubic-bezier(.3,1.5,.6,1) .5s both;white-space:nowrap}
+.bakbanner span{font:700 44px var(--disp);letter-spacing:.04em}
+.bakbanner b{font-size:30px;font-weight:700;color:#ffe6b3}
+.rk.bakrow{border-color:var(--rood);background:rgba(255,77,94,.16)}
+.rkmem{font-size:20px;color:var(--gedempt);font-weight:600}
+.baktag{background:var(--rood);color:#fff;font:700 22px var(--disp);padding:4px 12px;border-radius:999px;white-space:nowrap}
+.siptag{color:var(--amber);font-size:24px;font-weight:700;white-space:nowrap}
+
+/* telefoon: teams + drankspel */
+.teammem-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.teammem-in{height:46px;border-radius:12px;background:var(--pruim);border:2px solid var(--schemer);padding:0 10px;font-size:15px;font-weight:700;color:var(--creme);outline:none;width:100%}
+.teammem-in:focus{border-color:var(--amber)}
+.pdrink-wrap{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.pdrink{border-radius:18px;padding:14px 16px;text-align:left;border:2px solid var(--amber);background:rgba(255,178,63,.14)}
+.pdrink.take{border-color:var(--rood);background:rgba(255,77,94,.2)}
+.pdrink.all{border-color:var(--amber);background:rgba(255,178,63,.22)}
+.pdrink.give{border-color:var(--mint);background:rgba(52,224,143,.16)}
+.pdrink.done{border-color:var(--mint);background:rgba(52,224,143,.12);text-align:center;font-size:16px}
+.pdrink-h{font:700 22px var(--disp);color:var(--creme)}
+.pdrink-s{font-size:15px;color:var(--gedempt);font-weight:600;margin-top:4px}
+.pgive-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pgive-btn{display:flex;align-items:center;gap:8px;background:var(--pruim);border:2px solid var(--mint);border-radius:999px;padding:6px 14px 6px 8px;font-size:16px;font-weight:800;color:var(--creme)}
+.pgive-btn:active{transform:scale(.95)}
+.pbak{margin-top:18px;background:rgba(255,77,94,.24);border:2px solid var(--rood);border-radius:16px;padding:12px 18px;font:700 20px var(--disp);color:#fff}

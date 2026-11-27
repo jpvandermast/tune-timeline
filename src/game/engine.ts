@@ -4,6 +4,8 @@
 import type {
   ApplyResult,
   Card,
+  DrinkAction,
+  DrinkKind,
   Effect,
   GameEvent,
   GameState,
@@ -46,10 +48,18 @@ import {
 } from './rules';
 import { shuffle } from './rng';
 
-export const DEFAULT_SETTINGS: Settings = { goal: 10, placeSeconds: 45, tempo: 1, level: 'original', reactions: true };
+export const DEFAULT_SETTINGS: Settings = {
+  goal: 10,
+  placeSeconds: 45,
+  tempo: 1,
+  level: 'original',
+  reactions: true,
+  drinking: false,
+  teams: false,
+};
 
 const TOO_LATE = 'Te laat, het venster is dicht. Je token blijft van jou.';
-const newStats = (): PlayerStats => ({ correct: 0, oldestCorrect: null, closestMiss: null, steals: 0, guessesCorrect: 0 });
+const newStats = (): PlayerStats => ({ correct: 0, oldestCorrect: null, closestMiss: null, steals: 0, guessesCorrect: 0, sips: 0 });
 /** Tot het einde van ronde 2 mag je nog instappen (CONCEPT 2.9). */
 export const LATE_JOIN_ROUNDS = 2;
 
@@ -98,13 +108,14 @@ export function createGame(opts: {
     reactions: [],
     lastReact: {},
     reclaims: [],
+    drinks: [],
   };
 }
 
 /** Oudere opgeslagen status (van vóór fase 3) aanvullen met nieuwe velden. */
 export function migrate(s: GameState): GameState {
   const d = createGame({ code: s.code, songs: [], seed: 1, now: s.now });
-  const out = { ...d, ...s, settings: { ...DEFAULT_SETTINGS, ...s.settings } } as GameState;
+  const out = { ...d, ...s, settings: { ...DEFAULT_SETTINGS, ...s.settings }, drinks: s.drinks ?? [] } as GameState;
   out.players = out.players.map((p) => ({ ...p, stats: { ...newStats(), ...p.stats } }));
   if (out.turn) out.turn = { ...newTurn(out.turn.playerId), ...out.turn };
   return out;
@@ -198,13 +209,25 @@ const startTokens = (s: GameState) => LEVEL_TOKENS[level(s)];
 
 // ---------------- aanmelden, later instappen, "Ik speelde al" ----------------
 
+function cleanMembers(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const list = raw
+    .map((x) => (typeof x === 'string' ? x.trim().slice(0, 12) : ''))
+    .filter(Boolean)
+    .slice(0, 3);
+  return list.length ? list : undefined;
+}
+
 function handleJoin(s: GameState, e: Extract<GameEvent, { type: 'join' }>, fx: Effect[]) {
   const existing = byId(s, e.playerId);
-  const name = e.name.trim().slice(0, 10);
+  const maxLen = s.settings.teams ? 14 : 10;
+  const name = e.name.trim().slice(0, maxLen);
+  const members = cleanMembers(e.members);
   const inLobby = s.phase === 'lobby' || s.phase === 'explain';
   if (existing) {
     if (existing.secret !== e.secret) return;
     if (inLobby && name) existing.name = name;
+    if (inLobby && members) existing.members = members;
     if (inLobby && validColor(s, e.color, existing.id)) existing.color = e.color;
     return;
   }
@@ -220,6 +243,7 @@ function handleJoin(s: GameState, e: Extract<GameEvent, { type: 'join' }>, fx: E
       id: e.playerId,
       secret: e.secret,
       name,
+      ...(members ? { members } : {}),
       color: e.color,
       cards: [],
       tokens: startTokens(s),
@@ -367,8 +391,13 @@ function handleIntent(s: GameState, e: GameEvent & IntentBase, p: Player, fx: Ef
         for (const x of s.players) x.tokens = LEVEL_TOKENS[e.level];
       }
       if (typeof e.reactions === 'boolean') s.settings.reactions = e.reactions;
+      if (typeof e.drinking === 'boolean') s.settings.drinking = e.drinking;
+      if (typeof e.teams === 'boolean') s.settings.teams = e.teams;
       break;
     }
+    case 'giveSips':
+      giveSips(s, p, e.drinkId, e.targetId, fx);
+      break;
     case 'startSong':
       if (isActive && s.phase === 'turnStart') beginPlacing(s, fx);
       break;
@@ -599,6 +628,7 @@ function deal(s: GameState, fx: Effect[]) {
   s.objection = null;
   s.lastBuy = null;
   s.explainReady = [];
+  s.drinks = [];
   setPhase(s, 'deal', TIMES.deal);
   fx.push({ type: 'sound', sound: 'turn' });
 }
@@ -628,6 +658,8 @@ function beginTurn(s: GameState, fx: Effect[]) {
   s.reveal = null;
   s.objection = null;
   s.lastBuy = null;
+  // Openstaande uitdeel-acties blijven nog heel even bruikbaar tijdens de beurtstart.
+  s.drinks = (s.drinks ?? []).filter((d) => d.kind === 'give' && !d.targetId);
   if (!p.online) {
     // Actieve speler offline bij zijn beurtstart: 20 s wachten (CONCEPT 2.9).
     s.turn.waiting = true;
@@ -664,6 +696,7 @@ export function songAvailable(s: GameState): boolean {
 
 function beginPlacing(s: GameState, fx: Effect[]) {
   if (!s.turn) return;
+  s.drinks = [];
   const song = drawSong(s);
   s.turn.song = song;
   s.turn.slot = null;
@@ -926,6 +959,7 @@ function resolve(s: GameState, fx: Effect[]) {
     flipped: false,
     guesses,
   };
+  applyRevealDrinks(s, fx, 2100);
   revealFx(s, fx, activeCorrect ? 'good' : winner ? 'kassa' : 'bad');
 }
 
@@ -982,9 +1016,11 @@ function resolvePro(s: GameState, t: Turn, p: Player, song: Song, years: number[
     // Niemand kan de kaart nog krijgen: afleggen, steel-tokens weg.
     s.discard.push(song);
     for (const st of steals) st.outcome = 'lost';
+    applyRevealDrinks(s, fx, 2100);
     revealFx(s, fx, 'bad');
     return;
   }
+  s.drinks = [];
   revealFx(s, fx, null);
 }
 
@@ -1099,7 +1135,18 @@ function closeObjection(s: GameState, fx: Effect[]) {
     }
   }
   o.result = { ok, awarded, maxed };
-  setPhase(s, 'objection', TIMES.objectionResult);
+  if (s.settings.drinking && p) {
+    s.drinks = (s.drinks ?? []).filter((d) => d.kind === 'give' && !d.targetId);
+    if (ok && s.reveal?.correct) {
+      addDrink(s, 'give', p.id, 2, 'Perfecte beurt! Deel uit');
+      fx.push({ type: 'sound', sound: 'cheers', delayMs: 250 });
+    } else if (!ok) {
+      addDrink(s, 'drink', p.id, 1, 'Titel/artiest fout!');
+      fx.push({ type: 'sound', sound: 'cheers', delayMs: 250 });
+    }
+  }
+  const hasOpenGive = s.settings.drinking && s.drinks.some((d) => d.kind === 'give' && !d.targetId);
+  setPhase(s, 'objection', hasOpenGive ? Math.max(TIMES.objectionResult, 4500) : TIMES.objectionResult);
 }
 
 /** Pro/Expert: het bezwaar is gesloten; nu pas gaat de kaart naar iemand (of weg). */
@@ -1148,6 +1195,7 @@ function settlePro(s: GameState, fx: Effect[]) {
     fx.push({ type: 'sound', sound: 'bad' });
   }
   if (p) r.cardsAfter = p.cards.length;
+  applyRevealDrinks(s, fx, 250);
 }
 
 function refund(s: GameState, id: string) {
@@ -1161,6 +1209,16 @@ function win(s: GameState, p: Player, fx: Effect[]) {
   s.winnerId = p.id;
   s.turn = null;
   s.objection = null;
+  s.drinks = [];
+  if (s.settings.drinking && s.players.length >= 2) {
+    const others = s.players.filter((x) => x.id !== p.id);
+    const minCards = Math.min(...others.map((x) => x.cards.length));
+    const lowCards = others.filter((x) => x.cards.length === minCards);
+    const minTokens = Math.min(...lowCards.map((x) => x.tokens));
+    for (const loser of lowCards.filter((x) => x.tokens === minTokens)) {
+      addDrink(s, 'bak', loser.id, 0, 'BAK TREKKEN!');
+    }
+  }
   setPhase(s, 'winner', null);
   fx.push({ type: 'stop' });
   fx.push({ type: 'sound', sound: 'fanfare' });
@@ -1181,10 +1239,86 @@ function endTurn(s: GameState, fx: Effect[]) {
   if (s.turnIndex === s.startIndex) {
     s.round += 1;
     s.turn = null;
+    applyStandingsDrinks(s, fx);
     setPhase(s, 'standings', TIMES.standings);
   } else {
     beginTurn(s, fx);
   }
+}
+
+// ---------------- drankspel ----------------
+
+function addDrink(s: GameState, kind: DrinkKind, playerId: string | null, sips: number, reason: string): DrinkAction {
+  const d: DrinkAction = {
+    id: `d:${s.now}:${s.drinks.length}`,
+    kind,
+    playerId,
+    sips,
+    reason,
+    ...(kind === 'give' ? { targetId: null } : {}),
+  };
+  s.drinks.push(d);
+  if (kind === 'drink' && playerId) {
+    const pl = byId(s, playerId);
+    if (pl) pl.stats.sips = (pl.stats.sips ?? 0) + sips;
+  } else if (kind === 'all') {
+    for (const pl of s.players) pl.stats.sips = (pl.stats.sips ?? 0) + sips;
+  }
+  return d;
+}
+
+function applyRevealDrinks(s: GameState, fx: Effect[], delayMs: number) {
+  s.drinks = [];
+  if (!s.settings.drinking || !s.reveal) return;
+  const r = s.reveal;
+  if (!r.correct) {
+    if (r.stolenBy) {
+      addDrink(s, 'drink', r.playerId, 3, 'Mis & gestolen!');
+      addDrink(s, 'give', r.stolenBy, 2, 'Gestolen! Deel uit');
+    } else {
+      addDrink(s, 'drink', r.playerId, 2, 'Mis!');
+      addDrink(s, 'all', null, 1, 'Niemand goed!');
+    }
+  } else if (r.level !== 'original') {
+    addDrink(s, 'give', r.playerId, 2, 'Perfecte beurt! Deel uit');
+  }
+  for (const st of r.steals) {
+    if (st.outcome === 'lost') addDrink(s, 'drink', st.playerId, 2, 'Mislukte steal');
+  }
+  if (s.drinks.length > 0) fx.push({ type: 'sound', sound: 'cheers', delayMs });
+}
+
+function applyStandingsDrinks(s: GameState, fx: Effect[]) {
+  const openGives = (s.drinks ?? []).filter((d) => d.kind === 'give' && !d.targetId);
+  s.drinks = openGives;
+  if (!s.settings.drinking || s.players.length < 2) return;
+  const minCards = Math.min(...s.players.map((x) => x.cards.length));
+  const lowCards = s.players.filter((x) => x.cards.length === minCards);
+  const minTokens = Math.min(...lowCards.map((x) => x.tokens));
+  const last = lowCards.filter((x) => x.tokens === minTokens);
+  if (last.length === s.players.length) {
+    addDrink(s, 'all', null, 1, 'Gelijke stand!');
+  } else {
+    for (const pl of last) addDrink(s, 'drink', pl.id, 1, 'Laatste plek!');
+  }
+  fx.push({ type: 'sound', sound: 'cheers', delayMs: 300 });
+}
+
+function giveSips(s: GameState, p: Player, drinkId: string, targetId: string, fx: Effect[]) {
+  if (!s.settings.drinking) return;
+  const d = (s.drinks ?? []).find((x) => x.id === drinkId && x.kind === 'give' && x.playerId === p.id && !x.targetId);
+  if (!d) return;
+  const target = byId(s, targetId);
+  if (!target || target.id === p.id) return;
+  d.targetId = target.id;
+  target.stats.sips = (target.stats.sips ?? 0) + d.sips;
+  const teamNote = s.settings.teams ? ' (heel het team!)' : '';
+  s.notice = {
+    kind: 'drink',
+    text: `🍺 ${p.name} geeft ${d.sips} ${d.sips === 1 ? 'slok' : 'slokken'} aan ${target.name}${teamNote}`,
+    until: s.now + 4500,
+  };
+  fx.push({ type: 'sound', sound: 'cheers' });
 }
 
 // ---------------- hostmenu ----------------
@@ -1339,6 +1473,7 @@ function toLobby(s: GameState, fx: Effect[]) {
   s.pausedBy = null;
   s.pausedRemaining = null;
   s.explainReady = [];
+  s.drinks = [];
   // Toeschouwers mogen in de lobby gewoon meedoen.
   for (const sp of s.spectators) {
     if (s.players.length >= MAX_PLAYERS) break;

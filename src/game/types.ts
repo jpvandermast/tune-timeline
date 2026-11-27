@@ -45,6 +45,8 @@ export interface PlayerStats {
   steals: number;
   /** Meegokken: aantal keer goed (prijs "Beste oor"). */
   guessesCorrect: number;
+  /** Drankspel: totaal aantal slokken genomen dit potje. */
+  sips: number;
 }
 
 export interface Player {
@@ -52,6 +54,8 @@ export interface Player {
   /** Alleen in de volledige status van de tv; nooit publiek. */
   secret: string;
   name: string;
+  /** Teammodus: namen van de 2–3 teamleden op deze telefoon. */
+  members?: string[];
   color: string;
   cards: Card[]; // altijd oplopend gesorteerd op jaar
   tokens: number;
@@ -82,6 +86,25 @@ export interface Settings {
   level: Level;
   /** Emoji-reacties aan/uit (host). */
   reactions: boolean;
+  /** Drankspel-modus aan/uit (host). */
+  drinking: boolean;
+  /** Teams van 2–3 spelers op 1 telefoon aan/uit (host). */
+  teams: boolean;
+}
+
+export type DrinkKind = 'drink' | 'give' | 'all' | 'bak';
+
+export interface DrinkAction {
+  id: string;
+  kind: DrinkKind;
+  /** Wie moet drinken ('drink'/'bak') of mag uitdelen ('give'). Null bij 'all'. */
+  playerId: string | null;
+  /** Aantal slokken (0 bij 'bak'). */
+  sips: number;
+  /** Korte reden op tv en telefoon. */
+  reason: string;
+  /** Bij 'give': aan wie de slokken zijn uitgedeeld (null = nog te kiezen). */
+  targetId?: string | null;
 }
 
 export interface StealClaim {
@@ -182,7 +205,7 @@ export interface Reveal {
 }
 
 export interface Notice {
-  kind: 'songFailed' | 'info' | 'skip';
+  kind: 'songFailed' | 'info' | 'skip' | 'drink';
   text: string;
   until: number;
 }
@@ -244,6 +267,8 @@ export interface GameState {
   lastReact: Record<string, number>;
   /** "Ik speelde al": wacht op bevestiging van de host. */
   reclaims: Reclaim[];
+  /** Drankspel: actieve drankmeldingen voor de huidige fase (tv + telefoon). */
+  drinks: DrinkAction[];
 }
 
 // ---------- events (alles met tv-tijd `now`) ----------
@@ -259,7 +284,7 @@ export interface IntentBase extends Base {
 }
 
 export type GameEvent =
-  | (IntentBase & { type: 'join'; name: string; color: string })
+  | (IntentBase & { type: 'join'; name: string; color: string; members?: string[] })
   | (IntentBase & { type: 'start' })
   | (IntentBase & { type: 'understood' })
   | (IntentBase & {
@@ -268,7 +293,10 @@ export type GameEvent =
       placeSeconds?: Settings['placeSeconds'];
       level?: Level;
       reactions?: boolean;
+      drinking?: boolean;
+      teams?: boolean;
     })
+  | (IntentBase & { type: 'giveSips'; drinkId: string; targetId: string })
   | (IntentBase & { type: 'startSong' })
   | (IntentBase & { type: 'pickSlot'; slot: number | null })
   | (IntentBase & { type: 'lock' })
@@ -321,7 +349,8 @@ export type Sound =
   | 'steal'
   | 'kassa'
   | 'coin'
-  | 'matchpoint';
+  | 'matchpoint'
+  | 'cheers';
 
 export type Effect =
   | { type: 'play'; song: Song }
